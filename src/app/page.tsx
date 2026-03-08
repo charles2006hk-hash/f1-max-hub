@@ -1,3 +1,4 @@
+import DynamicNews from '@/components/DynamicNews';
 import { Trophy, Zap, MessageSquare, Calendar, Flag, PlayCircle, Newspaper } from 'lucide-react';
 import { GoogleGenAI } from '@google/genai';
 import CommentBoard from '@/components/CommentBoard';
@@ -92,27 +93,7 @@ export default async function Home() {
               </div>
             </section>
 
-            {/* AI Report (原有的) */}
-            <section id="ai-report" className="scroll-mt-24">
-              <div className="flex items-center gap-3 border-l-4 border-yellow-400 pl-4 mb-6">
-                <Trophy className="text-yellow-400" size={28} />
-                <h2 className="text-3xl font-bold text-white">Race Intelligence</h2>
-              </div>
-              <div className="bg-slate-900 p-8 rounded-2xl border border-slate-800 shadow-lg relative overflow-hidden">
-                <div className="absolute top-0 right-0 w-64 h-64 bg-blue-900/10 rounded-full blur-3xl -mr-20 -mt-20 pointer-events-none"></div>
-                <h3 className="text-2xl font-bold text-white mb-4 relative z-10">{report.raceName}</h3>
-                <p className="text-gray-300 leading-relaxed text-lg mb-8 bg-slate-950 p-6 rounded-xl border border-slate-800 relative z-10">{report.aiSummary}</p>
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-6 relative z-10">
-                  {report.highlights.map((item: any, idx: number) => (
-                    <div key={idx} className="bg-slate-950 p-5 rounded-xl border border-slate-800 hover:border-red-600/50 transition duration-300">
-                      <div className="text-sm text-gray-500 mb-1">{item.label}</div>
-                      <div className="text-xl font-bold text-yellow-400 mb-2">{item.value}</div>
-                      <div className="text-xs text-gray-400">{item.note}</div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            </section>
+            <DynamicNews />
 
             {/* 留言板 */}
             <section id="paddock-feed" className="scroll-mt-24">
