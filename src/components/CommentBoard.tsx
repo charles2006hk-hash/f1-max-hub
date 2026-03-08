@@ -5,7 +5,7 @@ import { MessageSquare, Trash2, ShieldCheck, Send, Reply, Loader2, ImagePlus, X,
 import { db } from "@/lib/firebase";
 import { collection, addDoc, onSnapshot, query, orderBy, serverTimestamp, deleteDoc, doc, updateDoc } from "firebase/firestore";
 // 引入 Emoji 套件
-import EmojiPicker from 'emoji-picker-react';
+import EmojiPicker, { Theme } from 'emoji-picker-react';
 
 interface Comment {
   id: string;
@@ -163,7 +163,7 @@ export default function CommentBoard() {
         {/* Emoji 選擇器浮窗 */}
         {showEmoji && (
           <div className="absolute z-50 bottom-16 left-5 shadow-2xl">
-            <EmojiPicker onEmojiClick={onEmojiClick} theme="dark" />
+            <EmojiPicker onEmojiClick={onEmojiClick} theme={Theme.DARK} />
           </div>
         )}
 
