@@ -1,9 +1,11 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
-import { MessageSquare, Trash2, ShieldCheck, Send, Reply, Loader2, ImagePlus, X, Star } from "lucide-react";
+import { MessageSquare, Trash2, ShieldCheck, Send, Reply, Loader2, ImagePlus, X, Star, Smile } from "lucide-react";
 import { db } from "@/lib/firebase";
 import { collection, addDoc, onSnapshot, query, orderBy, serverTimestamp, deleteDoc, doc, updateDoc } from "firebase/firestore";
+// 引入 Emoji 套件
+import EmojiPicker from 'emoji-picker-react';
 
 interface Comment {
   id: string;
@@ -21,6 +23,7 @@ export default function CommentBoard() {
   const [newText, setNewText] = useState("");
   const [images, setImages] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
+  const [showEmoji, setShowEmoji] = useState(false); // 控制 Emoji 面板
   const fileInputRef = useRef<HTMLInputElement>(null);
   
   const [isAdmin, setIsAdmin] = useState(false);
@@ -40,16 +43,18 @@ export default function CommentBoard() {
 
   const handleAdminLogin = () => {
     if (isAdmin) { setIsAdmin(false); return; }
-    const pass = prompt("Admin Password (Hint: Max's number):");
-    if (pass === "33" || pass === "1") {
-      setIsAdmin(true); alert("✅ Welcome back, Admin Jason!");
-    } else {
-      alert("❌ Incorrect Password");
-    }
+    const pass = prompt("Admin Password:");
+    if (pass === "33" || pass === "1") { setIsAdmin(true); alert("✅ Admin Unlocked."); } 
+    else { alert("❌ Incorrect"); }
   };
 
-  // 📸 影像壓縮引擎 (自動控制在 ~150KB 以下)
-  const processImage = (file: File): Promise<string> => {
+  const onEmojiClick = (emojiObject: any) => {
+    setNewText(prev => prev + emojiObject.emoji);
+    setShowEmoji(false);
+  };
+
+  // 📸 進階影像引擎：支援自動加字 (Meme 模式)
+  const processImage = (file: File, overlayText: string): Promise<string> => {
     return new Promise((resolve) => {
       const reader = new FileReader();
       reader.readAsDataURL(file);
@@ -58,15 +63,33 @@ export default function CommentBoard() {
         img.src = e.target?.result as string;
         img.onload = () => {
           const canvas = document.createElement("canvas");
-          const MAX_SIZE = 800; // 限制最大寬高
+          const MAX_SIZE = 800;
           let { width, height } = img;
           if (width > height && width > MAX_SIZE) { height *= MAX_SIZE / width; width = MAX_SIZE; }
           else if (height > MAX_SIZE) { width *= MAX_SIZE / height; height = MAX_SIZE; }
           
           canvas.width = width; canvas.height = height;
           const ctx = canvas.getContext("2d");
-          ctx?.drawImage(img, 0, 0, width, height);
-          resolve(canvas.toDataURL("image/jpeg", 0.5)); // 0.5 壓縮率通常小於 100KB
+          if (!ctx) return resolve(canvas.toDataURL("image/jpeg", 0.5));
+
+          // 畫底圖
+          ctx.drawImage(img, 0, 0, width, height);
+
+          // 🔥 如果使用者有輸入文字，把它印在圖片正中央偏下
+          if (overlayText) {
+            ctx.font = `bold ${width * 0.08}px Impact, sans-serif`;
+            ctx.textAlign = "center";
+            ctx.textBaseline = "bottom";
+            
+            // 黑邊白字效果 (Meme Style)
+            ctx.lineWidth = width * 0.015;
+            ctx.strokeStyle = "black";
+            ctx.strokeText(overlayText.toUpperCase(), width / 2, height - 20);
+            ctx.fillStyle = "white";
+            ctx.fillText(overlayText.toUpperCase(), width / 2, height - 20);
+          }
+          
+          resolve(canvas.toDataURL("image/jpeg", 0.5));
         };
       };
     });
@@ -75,18 +98,17 @@ export default function CommentBoard() {
   const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     if (!e.target.files) return;
     const files = Array.from(e.target.files);
-    if (images.length + files.length > 6) {
-      alert("Maximum 6 images allowed per post!"); return;
-    }
+    if (images.length + files.length > 6) { alert("Maximum 6 images!"); return; }
     
-    const compressedImages = await Promise.all(files.map(f => processImage(f)));
+    // 詢問使用者是否要在圖片上加字
+    const overlayText = prompt("Do you want to add text on these images? (Leave blank for none)") || "";
+    
+    const compressedImages = await Promise.all(files.map(f => processImage(f, overlayText)));
     setImages(prev => [...prev, ...compressedImages]);
     if (fileInputRef.current) fileInputRef.current.value = "";
   };
 
-  const removeImage = (index: number) => {
-    setImages(images.filter((_, i) => i !== index));
-  };
+  const removeImage = (index: number) => setImages(images.filter((_, i) => i !== index));
 
   const handleAddComment = async () => {
     if (!newText.trim() && images.length === 0) return;
@@ -100,25 +122,21 @@ export default function CommentBoard() {
         isVoiceOfDay: false,
         createdAt: serverTimestamp()
       });
-      setNewText(""); setImages([]);
-    } catch (error) {
-      console.error(error); alert("Failed to post. Check database rules.");
-    }
+      setNewText(""); setImages([]); setShowEmoji(false);
+    } catch (error) { console.error(error); alert("Failed to post."); }
   };
 
   const handleDelete = async (id: string) => {
-    if (confirm("Permanently delete this post?")) await deleteDoc(doc(db, "fan_messages", id));
+    if (confirm("Delete this post?")) await deleteDoc(doc(db, "fan_messages", id));
   };
 
   const handleReply = async (id: string) => {
     if (!replyText.trim()) return;
-    await updateDoc(doc(db, "fan_messages", id), { reply: `Admin Jason: ${replyText}` });
+    await updateDoc(doc(db, "fan_messages", id), { reply: `Admin: ${replyText}` });
     setAdminReplyId(null); setReplyText("");
   };
 
-  // 管理員：設為今日之聲
   const toggleVoiceOfDay = async (id: string, currentStatus: boolean) => {
-    // 先把其他留言的 VoiceOfDay 取消 (可選，這裡簡化為直接覆蓋)
     await updateDoc(doc(db, "fan_messages", id), { isVoiceOfDay: !currentStatus });
   };
 
@@ -137,12 +155,18 @@ export default function CommentBoard() {
         </div>
       </div>
 
-      {/* Input Area */}
-      <div className="bg-slate-950 p-5 rounded-2xl border border-slate-800 mb-8 focus-within:border-blue-500/50">
+      <div className="bg-slate-950 p-5 rounded-2xl border border-slate-800 mb-8 focus-within:border-blue-500/50 relative">
         <input type="text" placeholder={isAdmin ? "Admin Jason" : "Your Name (Optional)"} className={`w-full bg-transparent border-b border-slate-800 pb-2 mb-3 focus:outline-none ${isAdmin ? 'text-red-400 font-bold' : 'text-white'}`} value={isAdmin ? "👑 Admin Jason" : newName} onChange={(e) => !isAdmin && setNewName(e.target.value)} disabled={isAdmin} />
+        
         <textarea placeholder="Share your thoughts, stats, or drop emojis! 🔥🏎️..." className="w-full bg-transparent text-white resize-none h-20 focus:outline-none placeholder-slate-600" value={newText} onChange={(e) => setNewText(e.target.value)} />
         
-        {/* Image Previews */}
+        {/* Emoji 選擇器浮窗 */}
+        {showEmoji && (
+          <div className="absolute z-50 bottom-16 left-5 shadow-2xl">
+            <EmojiPicker onEmojiClick={onEmojiClick} theme="dark" />
+          </div>
+        )}
+
         {images.length > 0 && (
           <div className="flex gap-2 mb-3 overflow-x-auto pb-2">
             {images.map((img, i) => (
@@ -155,10 +179,13 @@ export default function CommentBoard() {
         )}
 
         <div className="flex justify-between items-center mt-2 border-t border-slate-800 pt-3">
-          <div>
+          <div className="flex gap-4">
+            <button onClick={() => setShowEmoji(!showEmoji)} className="text-slate-400 hover:text-yellow-400 flex items-center gap-1 text-sm transition">
+              <Smile size={18} /> Emoji
+            </button>
             <input type="file" accept="image/*" multiple ref={fileInputRef} className="hidden" onChange={handleImageUpload} />
-            <button onClick={() => fileInputRef.current?.click()} className="text-slate-400 hover:text-blue-400 flex items-center gap-2 text-sm transition">
-              <ImagePlus size={18} /> Add Media ({images.length}/6)
+            <button onClick={() => fileInputRef.current?.click()} className="text-slate-400 hover:text-blue-400 flex items-center gap-1 text-sm transition">
+              <ImagePlus size={18} /> Media ({images.length}/6)
             </button>
           </div>
           <button onClick={handleAddComment} className={`${isAdmin ? 'bg-red-600' : 'bg-blue-600'} text-white px-5 py-2 rounded-full font-bold flex items-center gap-2 active:scale-95 transition`}>
@@ -167,7 +194,7 @@ export default function CommentBoard() {
         </div>
       </div>
 
-      {/* Comments List */}
+      {/* 以下留言列表代碼與之前相同 */}
       <div className="space-y-5 min-h-[200px]">
         {loading ? <div className="text-slate-500 text-center py-10"><Loader2 className="animate-spin inline mr-2"/> Loading Feed...</div> : comments.map((comment) => (
           <div key={comment.id} className={`bg-slate-950/50 p-5 rounded-xl border ${comment.isAdmin ? 'border-red-900/30 bg-red-950/10' : 'border-slate-800/50'} group`}>
@@ -179,7 +206,7 @@ export default function CommentBoard() {
               
               {isAdmin && (
                 <div className="opacity-0 group-hover:opacity-100 transition-opacity flex gap-3">
-                  <button onClick={() => toggleVoiceOfDay(comment.id, comment.isVoiceOfDay || false)} className="text-slate-500 hover:text-orange-400 tooltip" title="Set as Voice of Day"><Star size={16} /></button>
+                  <button onClick={() => toggleVoiceOfDay(comment.id, comment.isVoiceOfDay || false)} className="text-slate-500 hover:text-orange-400"><Star size={16} /></button>
                   <button onClick={() => setAdminReplyId(comment.id)} className="text-slate-500 hover:text-blue-400"><Reply size={16} /></button>
                   <button onClick={() => handleDelete(comment.id)} className="text-slate-500 hover:text-red-500"><Trash2 size={16} /></button>
                 </div>
@@ -199,7 +226,7 @@ export default function CommentBoard() {
             {comment.reply && (
               <div className="bg-blue-950/30 border-l-4 border-blue-500 p-3 rounded-r-lg mt-3 text-sm text-gray-300">
                 <span className="text-blue-400 font-bold block mb-1">Official Reply</span>
-                {comment.reply.replace("Admin Jason: ", "")}
+                {comment.reply.replace("Admin: ", "")}
               </div>
             )}
 
