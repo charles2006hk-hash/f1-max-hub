@@ -60,40 +60,30 @@ export default async function Home() {
           {/* 左側主內容區 (2/3) */}
           <div className="lg:col-span-2 space-y-16">
             
-            {/* 🔥 新增：最新消息與影片區塊 */}
-            <section id="news" className="scroll-mt-24">
-              <div className="flex items-center gap-3 border-l-4 border-red-600 pl-4 mb-6">
-                <Newspaper className="text-red-600" size={28} />
-                <h2 className="text-3xl font-bold text-white">Latest Intelligence</h2>
+           {/* 1. 動態新聞與影片 (CMS 控制) */}
+            <DynamicNews />
+
+            {/* 2. AI 賽事報告 (自動更新) */}
+            <section id="ai-report" className="scroll-mt-24">
+              <div className="flex items-center gap-3 border-l-4 border-yellow-400 pl-4 mb-6">
+                <Trophy className="text-yellow-400" size={28} />
+                <h2 className="text-3xl font-bold text-white">Race Intelligence</h2>
               </div>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                {/* 影片卡片 (嵌入 YouTube) */}
-                <div className="bg-slate-900 rounded-2xl border border-slate-800 overflow-hidden shadow-lg hover:border-blue-500 transition group">
-                  <div className="relative aspect-video bg-black">
-                    {/* 這裡替換成真實的 YouTube Embed 連結 */}
-                    <iframe className="w-full h-full" src="https://www.youtube.com/embed/S2gP22wY19c?si=R9T1N-n4q9C" title="2026 F1 Rules Explained" allowFullScreen></iframe>
-                  </div>
-                  <div className="p-5">
-                    <span className="text-xs font-bold text-red-500 uppercase tracking-wider mb-2 block">Video Explainer</span>
-                    <h3 className="text-lg font-bold text-white mb-2">How 2026 Rules Favour Red Bull</h3>
-                    <p className="text-sm text-gray-400">Deep dive into the active aero systems and why Adrian Newey's foundation still dominates.</p>
-                  </div>
-                </div>
-                {/* 圖文新聞卡片 */}
-                <div className="bg-slate-900 rounded-2xl border border-slate-800 overflow-hidden shadow-lg hover:border-blue-500 transition group">
-                  <div className="h-40 overflow-hidden relative">
-                    <img src="https://images.unsplash.com/photo-1532560383141-80a568c0b5de?q=80&w=800&auto=format&fit=crop" className="w-full h-full object-cover group-hover:scale-105 transition duration-500" alt="Engine" />
-                  </div>
-                  <div className="p-5">
-                    <span className="text-xs font-bold text-blue-400 uppercase tracking-wider mb-2 block">Tech Update</span>
-                    <h3 className="text-lg font-bold text-white mb-2">Ford Powertrain hits 350kW Target</h3>
-                    <p className="text-sm text-gray-400">Christian Horner confirms dyno testing exceeds expectations ahead of the Bahrain test.</p>
-                  </div>
+              <div className="bg-slate-900 p-8 rounded-2xl border border-slate-800 shadow-lg relative overflow-hidden">
+                <div className="absolute top-0 right-0 w-64 h-64 bg-blue-900/10 rounded-full blur-3xl -mr-20 -mt-20 pointer-events-none"></div>
+                <h3 className="text-2xl font-bold text-white mb-4 relative z-10">{report.raceName}</h3>
+                <p className="text-gray-300 leading-relaxed text-lg mb-8 bg-slate-950 p-6 rounded-xl border border-slate-800 relative z-10">{report.aiSummary}</p>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-6 relative z-10">
+                  {report.highlights.map((item: any, idx: number) => (
+                    <div key={idx} className="bg-slate-950 p-5 rounded-xl border border-slate-800 hover:border-red-600/50 transition duration-300">
+                      <div className="text-sm text-gray-500 mb-1">{item.label}</div>
+                      <div className="text-xl font-bold text-yellow-400 mb-2">{item.value}</div>
+                      <div className="text-xs text-gray-400">{item.note}</div>
+                    </div>
+                  ))}
                 </div>
               </div>
             </section>
-
-            <DynamicNews />
 
             {/* 留言板 */}
             <section id="paddock-feed" className="scroll-mt-24">
