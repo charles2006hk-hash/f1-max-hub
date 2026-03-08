@@ -1,0 +1,11 @@
+@import "tailwindcss";
+
+/* 針對 Tailwind v4 的全域背景設定 */
+@theme {
+  --color-dark-bg: #020617;
+}
+
+body {
+  background-color: var(--color-dark-bg);
+  color: #e2e8f0;
+}
