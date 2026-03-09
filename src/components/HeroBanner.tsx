@@ -52,14 +52,16 @@ export default function HeroBanner() {
         </div>
       )}
 
-      <div className="absolute inset-0 z-10 pointer-events-none">
-        <div className="absolute inset-0 bg-gradient-to-t md:bg-gradient-to-r from-slate-950 via-slate-900/40 to-transparent z-10"></div>
-        {/* 🔥 Updated the background image to one more reflective of Max/Red Bull aesthetics */}
+      {/* 在 HeroBanner.tsx 最下方，替換這個區塊 */}
+      <div className="absolute inset-0 z-10 pointer-events-none overflow-hidden">
+        {/* 🔥 圖片必須放在第一層 */}
         <img 
-          src="https://images.unsplash.com/photo-1532983330958-4b32abe9deab?q=80&w=1500&auto=format&fit=crop" 
-          alt="F1 Racing" 
-          className="object-cover w-full h-full opacity-60 grayscale-[10%]"
+          src="https://images.unsplash.com/photo-1541336032412-2048a678540d?q=80&w=1500&auto=format&fit=crop" 
+          alt="Max Racing" 
+          className="absolute inset-0 object-cover w-full h-full opacity-40 grayscale-[20%]"
         />
+        {/* 🔥 漸層遮罩放在第二層，蓋在圖片上面 */}
+        <div className="absolute inset-0 bg-gradient-to-t md:bg-gradient-to-r from-slate-950 via-slate-900/80 to-transparent"></div>
       </div>
     </section>
   );
