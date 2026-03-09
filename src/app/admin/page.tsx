@@ -29,13 +29,14 @@ export default function AdminPage() {
   useEffect(() => {
     if (!isAuth) return;
     
+    // 讀取首頁文字與設定
     const fetchData = async () => {
       const docSnap = await getDoc(doc(db, "settings", "home_config"));
       if (docSnap.exists()) setFormData(prev => ({ ...prev, ...docSnap.data() }));
     };
     fetchData();
 
-    // 🔥 修復：拿掉 orderBy 避免 Firebase 索引錯誤，改用 JS 本地排序
+    // 監聽 Vault 相簿 (使用 JS 排序避開 Firebase 複合索引錯誤)
     const q = query(collection(db, "max_gallery"));
     const unsubscribe = onSnapshot(q, (snap) => {
       const photos = snap.docs.map(d => ({
@@ -43,7 +44,6 @@ export default function AdminPage() {
         ...d.data(),
         time: d.data().createdAt?.toMillis() || 0
       }));
-      // 本地端依時間排序 (最新的在前面)
       photos.sort((a, b) => b.time - a.time);
       setVaultPhotos(photos);
     });
@@ -51,17 +51,34 @@ export default function AdminPage() {
     return () => unsubscribe();
   }, [isAuth]);
 
+  // 發佈到首頁
   const handleSave = async () => {
     setLoading(true);
     try {
       if (formData.standingsData) JSON.parse(formData.standingsData);
       if (formData.racesData) JSON.parse(formData.racesData);
       await setDoc(doc(db, "settings", "home_config"), formData);
-      alert("✅ 發佈成功！");
-    } catch (error) { alert("⚠️ JSON 格式有誤！"); }
+      alert("✅ 網站內容與即時數據已成功發佈！去首頁看看吧！");
+    } catch (error) { alert("⚠️ 發佈失敗！請檢查你手動修改的 JSON 格式是否缺少了引號或括號。"); }
     setLoading(false);
   };
 
+  // 區塊1：呼叫 AI 產生新聞腳本
+  const generateAIContent = async () => {
+    setAiLoading(true);
+    try {
+      const res = await fetch('/api/ai', { method: 'POST' });
+      const data = await res.json();
+      setFormData(prev => ({
+        ...prev,
+        newsHeadline: data.news.headline, newsContent: data.news.content, newsVideoPrompt: data.news.videoPrompt,
+        techHeadline: data.tech.headline, techContent: data.tech.content, techVideoPrompt: data.tech.videoPrompt
+      }));
+    } catch (error) { alert("AI 新聞生成失敗"); }
+    setAiLoading(false);
+  };
+
+  // 區塊2：呼叫 AI 抓取 F1 最新賽果
   const generateF1Data = async () => {
     setF1Loading(true);
     try {
@@ -72,14 +89,15 @@ export default function AdminPage() {
         standingsData: JSON.stringify(data.standings, null, 2),
         racesData: JSON.stringify(data.races, null, 2)
       }));
-    } catch (error) {}
+      alert("✨ AI 已經獲取最新 F1 數據！請在下方文字框確認後按下發佈！");
+    } catch (error) { alert("AI 數據抓取失敗"); }
     setF1Loading(false);
   };
 
+  // 更新或刪除照片
   const updatePhotoStatus = async (id: string, status: string) => {
     await updateDoc(doc(db, "max_gallery", id), { status });
   };
-  
   const deletePhoto = async (id: string) => {
     if (confirm("確定要永久刪除這張照片嗎？")) await deleteDoc(doc(db, "max_gallery", id));
   };
@@ -105,7 +123,7 @@ export default function AdminPage() {
 
           let quality = 0.8;
           let dataUrl = canvas.toDataURL("image/jpeg", quality);
-          // 150KB 的 Base64 約為 200,000 字元。若超過則持續調降品質
+          // 確保 Base64 小於約 150KB
           while (dataUrl.length > 200000 && quality > 0.1) {
             quality -= 0.1;
             dataUrl = canvas.toDataURL("image/jpeg", quality);
@@ -126,9 +144,9 @@ export default function AdminPage() {
       const compressedData = await compressImage(file);
       await addDoc(collection(db, "max_gallery"), {
         imageUrl: compressedData,
-        status: "approved", // 管理員上傳直接顯示
+        status: "approved", // 管理員上傳直接顯示為 approved
         submittedBy: "👑 Admin Jason",
-        likes: 0, // 初始化評分
+        likes: 0,
         createdAt: serverTimestamp()
       });
     }
@@ -152,17 +170,41 @@ export default function AdminPage() {
 
         <div className="bg-slate-900 p-8 rounded-2xl border border-slate-800 space-y-8">
           
-          {/* ...區塊 1 & 區塊 2 (省略以維持版面，請使用你原本代碼中的 區塊1 與 區塊2) ... */}
+          {/* 🔥 區塊 1：完全恢復的 News & Tech Broadcast */}
           <div className="border border-slate-800 rounded-xl p-6 bg-slate-950 space-y-6">
-             <h2 className="text-xl font-bold flex items-center gap-2 text-red-500"><Database size={24}/> 1 & 2. Data Centers</h2>
-             <button onClick={generateF1Data} disabled={f1Loading} className="w-full bg-red-600/20 text-red-500 border border-red-600/50 py-3 rounded-lg font-bold flex items-center justify-center gap-2"><Database size={20}/> 從 F1 官網同步 2026 最新數據</button>
-             <div className="grid grid-cols-2 gap-4">
-               <textarea className="w-full bg-slate-900 border border-slate-700 rounded-lg p-2 text-xs h-32 font-mono text-green-400" value={formData.standingsData} onChange={e => setFormData({...formData, standingsData: e.target.value})} placeholder='Standings JSON'/>
-               <textarea className="w-full bg-slate-900 border border-slate-700 rounded-lg p-2 text-xs h-32 font-mono text-green-400" value={formData.racesData} onChange={e => setFormData({...formData, racesData: e.target.value})} placeholder='Races JSON'/>
+            <h2 className="text-xl font-bold flex items-center gap-2 text-blue-400"><Wand2 size={24}/> 1. News & Tech Broadcast</h2>
+            <button onClick={generateAIContent} disabled={aiLoading} className="w-full bg-blue-600/20 text-blue-400 border border-blue-600/50 py-3 rounded-lg font-bold flex justify-center items-center gap-2 hover:bg-blue-600/40 transition">
+              {aiLoading ? <Loader2 className="animate-spin" size={20} /> : "🤖 請 AI 寫今日新聞與腳本"}
+            </button>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div className="space-y-3"><label className="text-xs text-slate-500 font-bold">News Headline</label><input type="text" className="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-sm" value={formData.newsHeadline} onChange={e => setFormData({...formData, newsHeadline: e.target.value})} /></div>
+              <div className="space-y-3"><label className="text-xs text-slate-500 font-bold">Tech Headline</label><input type="text" className="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-sm" value={formData.techHeadline} onChange={e => setFormData({...formData, techHeadline: e.target.value})} /></div>
+              <div className="space-y-3"><label className="text-xs text-slate-500 font-bold">News Content</label><textarea className="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-sm h-20" value={formData.newsContent} onChange={e => setFormData({...formData, newsContent: e.target.value})} /></div>
+              <div className="space-y-3"><label className="text-xs text-slate-500 font-bold">Tech Content</label><textarea className="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-sm h-20" value={formData.techContent} onChange={e => setFormData({...formData, techContent: e.target.value})} /></div>
+              <div className="space-y-3"><label className="text-xs text-slate-500 font-bold">News Video URL</label><input type="text" className="w-full bg-slate-900 border border-blue-500 rounded-lg px-3 py-2 text-sm" value={formData.newsVideoUrl} onChange={e => setFormData({...formData, newsVideoUrl: e.target.value})} /></div>
+              <div className="space-y-3"><label className="text-xs text-slate-500 font-bold">Tech Video URL</label><input type="text" className="w-full bg-slate-900 border border-blue-500 rounded-lg px-3 py-2 text-sm" value={formData.techVideoUrl} onChange={e => setFormData({...formData, techVideoUrl: e.target.value})} /></div>
+            </div>
+          </div>
+
+          {/* 區塊 2：Live Data Center */}
+          <div className="border border-slate-800 rounded-xl p-6 bg-slate-950 space-y-6">
+             <h2 className="text-xl font-bold flex items-center gap-2 text-red-500"><Database size={24}/> 2. Live Data Center (Standings & Races)</h2>
+             <button onClick={generateF1Data} disabled={f1Loading} className="w-full bg-red-600/20 text-red-500 border border-red-600/50 py-3 rounded-lg font-bold flex justify-center items-center gap-2 hover:bg-red-600/40 transition">
+               {f1Loading ? <Loader2 className="animate-spin" size={20} /> : <><Database size={20}/> 從 F1 官網同步 2026 最新數據</>}
+             </button>
+             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+               <div className="space-y-3">
+                 <label className="text-xs text-slate-500 font-bold">Driver Standings (JSON)</label>
+                 <textarea className="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-xs h-48 font-mono text-green-400" value={formData.standingsData} onChange={e => setFormData({...formData, standingsData: e.target.value})} placeholder='[ { "pos": 1, "driver": "VER", "team": "Red Bull", "pts": 26, "trend": "up" } ]' />
+               </div>
+               <div className="space-y-3">
+                 <label className="text-xs text-slate-500 font-bold">Upcoming Races (JSON)</label>
+                 <textarea className="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-xs h-48 font-mono text-green-400" value={formData.racesData} onChange={e => setFormData({...formData, racesData: e.target.value})} placeholder='[ { "date": "MAR 22", "name": "Saudi Arabian GP", "status": "UPCOMING" } ]' />
+               </div>
              </div>
           </div>
 
-          {/* 🔥 全新區塊 3：The Vault Curation (相片審查 & 批量上傳) */}
+          {/* 區塊 3：The Vault Curation (相片審查 & 批量上傳) */}
           <div className="border border-slate-800 rounded-xl p-6 bg-slate-950 space-y-6 relative">
             <div className="flex justify-between items-center">
               <h2 className="text-xl font-bold flex items-center gap-2 text-orange-500"><Camera size={24}/> 3. The Vault Curation (粉絲相片審查)</h2>
