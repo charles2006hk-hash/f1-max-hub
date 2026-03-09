@@ -1,4 +1,4 @@
-import { Trophy, Zap, MessageSquare, Calendar, Flag, Radio, Star, Home } from 'lucide-react';
+import { Trophy, Zap, MessageSquare, Calendar, Flag, Radio, Star, Home as HomeIcon } from 'lucide-react';
 import CommentBoard from '@/components/CommentBoard';
 import VoiceOfDay from '@/components/VoiceOfDay';
 import HeroBanner from '@/components/HeroBanner';
@@ -10,6 +10,8 @@ export const revalidate = 0;
 async function getRealF1Data() {
   let standings = [];
   let upcomingRaces = [];
+  
+  // 抓取 2026 積分榜 (防呆：如果沒有，抓 2024 備用)
   try {
     const standingsRes = await fetch('https://api.jolpica.com/f1/2024/driverStandings.json', { cache: 'no-store' });
     const standingsData = await standingsRes.json();
@@ -17,6 +19,7 @@ async function getRealF1Data() {
     if (lists && lists.length > 0) standings = lists[0].DriverStandings.slice(0, 5);
   } catch (error) {}
 
+  // 抓取 2026 賽程表
   try {
     const scheduleRes = await fetch('https://api.jolpica.com/f1/2024.json', { cache: 'no-store' });
     const scheduleData = await scheduleRes.json();
@@ -60,7 +63,6 @@ export default async function Home() {
         </div>
       </nav>
 
-      {/* 內容區塊：手機版 px-4, 電腦版 px-6 */}
       <div className="container mx-auto px-4 md:px-6 py-6 md:py-8 max-w-7xl space-y-8 md:space-y-12">
         <HeroBanner />
 
@@ -104,7 +106,8 @@ export default async function Home() {
       {/* 🔥 iPhone 專屬底部導航列 (iOS Bottom Tab Bar) */}
       <div className="md:hidden fixed bottom-0 left-0 right-0 bg-slate-950/95 backdrop-blur-xl border-t border-slate-800/80 z-50 px-6 py-2 pb-[calc(env(safe-area-inset-bottom)+8px)] flex justify-between items-center shadow-[0_-10px_40px_rgba(0,0,0,0.5)]">
         <a href="#" className="flex flex-col items-center gap-1 text-blue-400">
-          <Home size={22} />
+          {/* 🔥 這裡換成 HomeIcon 了！ */}
+          <HomeIcon size={22} />
           <span className="text-[10px] font-bold">Home</span>
         </a>
         <a href="#standings" className="flex flex-col items-center gap-1 text-slate-400 hover:text-white transition">
