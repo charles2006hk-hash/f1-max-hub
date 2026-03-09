@@ -24,6 +24,9 @@ export default function CommentBoard() {
   const [adminReplyId, setAdminReplyId] = useState<string | null>(null);
   const [replyText, setReplyText] = useState("");
 
+  // 🔥 新增：投稿到 Vault 的狀態 (預設勾選)
+  const [submitToVault, setSubmitToVault] = useState(true);
+
   const [lightboxState, setLightboxState] = useState<{ isOpen: boolean; currentImages: string[]; currentIndex: number }>({
     isOpen: false, currentImages: [], currentIndex: 0
   });
@@ -115,6 +118,7 @@ export default function CommentBoard() {
 
   const removeImage = (index: number) => setImages(images.filter((_, i) => i !== index));
 
+  // 🔥 修改：新增同時將照片投稿至 max_gallery 待審核區的邏輯
   const handleAddComment = async () => {
     if (!newText.trim() && images.length === 0) return;
     try {
@@ -128,6 +132,19 @@ export default function CommentBoard() {
         likes: 0,
         createdAt: serverTimestamp()
       });
+
+      // 如果有圖片且勾選了投稿到 Vault，寫入 max_gallery
+      if (images.length > 0 && submitToVault) {
+        for (const img of images) {
+          await addDoc(collection(db, "max_gallery"), {
+            imageUrl: img,
+            status: isAdmin ? "approved" : "pending", // 管理員發的直接通過，粉絲發的待審核
+            submittedBy: newName.trim() || "Anonymous Fan",
+            createdAt: serverTimestamp()
+          });
+        }
+      }
+
       setNewText(""); setImages([]); setShowEmoji(false);
     } catch (error) { console.error(error); alert("Failed to post."); }
   };
@@ -185,7 +202,6 @@ export default function CommentBoard() {
           <div className="flex gap-2 mb-3 overflow-x-auto pb-2 custom-scrollbar">
             {images.map((img, i) => (
               <div key={i} className="relative w-16 h-16 shrink-0 group">
-                {/* 🔥 修復預覽圖不被裁切：改成 object-contain */}
                 <img src={img} alt="preview" className="w-full h-full object-contain bg-black rounded-lg border border-slate-700" />
                 <button onClick={() => removeImage(i)} className="absolute -top-2 -right-2 bg-red-600 text-white rounded-full p-1"><X size={12}/></button>
               </div>
@@ -194,10 +210,18 @@ export default function CommentBoard() {
         )}
 
         <div className="flex justify-between items-center mt-3 border-t border-slate-800 pt-4">
-          <div className="flex gap-3 md:gap-4">
+          <div className="flex gap-3 md:gap-4 items-center">
             <button onClick={() => setShowEmoji(!showEmoji)} className="text-slate-400 hover:text-yellow-400 flex items-center gap-1.5 text-xs md:text-sm transition bg-slate-900 md:bg-transparent px-3 py-2 md:px-0 md:py-0 rounded-lg"><Smile size={18} /> <span className="hidden md:inline">Emoji</span></button>
             <input type="file" accept="image/*" multiple ref={fileInputRef} className="hidden" onChange={handleImageUpload} />
             <button onClick={() => fileInputRef.current?.click()} className="text-slate-400 hover:text-blue-400 flex items-center gap-1.5 text-xs md:text-sm transition bg-slate-900 md:bg-transparent px-3 py-2 md:px-0 md:py-0 rounded-lg"><ImagePlus size={18} /> Media <span className="text-[10px] bg-slate-800 px-1.5 rounded">{images.length}/6</span></button>
+            
+            {/* 🔥 新增：投稿到 Vault 的勾選框 */}
+            {images.length > 0 && (
+               <label className="flex items-center gap-2 text-xs text-orange-400 cursor-pointer ml-2 bg-orange-500/10 px-2 py-1 rounded border border-orange-500/20">
+                 <input type="checkbox" className="accent-orange-500 w-3 h-3 md:w-4 md:h-4" checked={submitToVault} onChange={(e) => setSubmitToVault(e.target.checked)} />
+                 <span className="hidden md:inline font-bold">Submit to Vault</span>
+               </label>
+            )}
           </div>
           <button onClick={handleAddComment} className={`${isAdmin ? 'bg-red-600' : 'bg-blue-600'} text-white px-6 py-2.5 rounded-full font-bold flex items-center gap-2 active:scale-95 transition text-sm shadow-lg shadow-blue-900/20`}>
             {isAdmin ? "Post" : "Send"} <Send size={16} />
@@ -234,7 +258,6 @@ export default function CommentBoard() {
               <div className={`grid ${comment.images.length === 1 ? 'grid-cols-1 max-w-sm' : 'grid-cols-2 md:grid-cols-3'} gap-2 mb-3`}>
                 {comment.images.map((img, i) => (
                   <div key={i} className="relative group/img overflow-hidden rounded-lg bg-black">
-                    {/* 🔥 留言區的圖片也改成 object-contain，確保文字 100% 可見 */}
                     <img src={img} alt="post" className={`w-full ${comment.images?.length === 1 ? 'h-auto max-h-96' : 'h-32'} object-contain group-hover/img:scale-105 transition duration-300 cursor-zoom-in`} onClick={() => openLightbox(comment.images!, i)} />
                   </div>
                 ))}
