@@ -9,55 +9,54 @@ export default function HeroBanner() {
 
   useEffect(() => {
     setIsLoaded(true);
-    // 每次載入網頁，4秒後自動縮小
-    const timer = setTimeout(() => {
-      setIsMinimized(true);
-    }, 4000);
-    return () => clearTimeout(timer); // 清理計時器
+    const timer = setTimeout(() => setIsMinimized(true), 4000);
+    return () => clearTimeout(timer);
   }, []);
 
   if (!isLoaded) return null;
 
   return (
-    <section className={`relative rounded-3xl overflow-hidden shadow-2xl shadow-blue-900/20 bg-slate-900 border border-blue-900/50 transition-all duration-1000 ease-in-out ${isMinimized ? 'h-32 md:h-40' : 'h-[80vh] min-h-[500px] flex flex-col md:flex-row'}`}>
+    // 🔥 手機版高度 h-[50vh]，電腦版 h-[80vh]
+    <section className={`relative rounded-2xl md:rounded-3xl overflow-hidden shadow-2xl shadow-blue-900/20 bg-slate-900 border border-blue-900/50 transition-all duration-1000 ease-in-out ${isMinimized ? 'h-28 md:h-40' : 'h-[50vh] min-h-[350px] md:h-[80vh] md:min-h-[500px] flex flex-col md:flex-row'}`}>
       
       {isMinimized && (
-        <div className="absolute inset-0 z-20 flex items-center justify-between p-6 md:p-8 bg-gradient-to-r from-slate-950 via-slate-900/80 to-transparent">
+        <div className="absolute inset-0 z-20 flex items-center justify-between p-5 md:p-8 bg-gradient-to-r from-slate-950 via-slate-900/80 to-transparent">
           <div>
-            <h1 className="text-2xl md:text-3xl font-black text-white uppercase italic tracking-wide mb-1 md:mb-2">
+            <h1 className="text-xl md:text-3xl font-black text-white uppercase italic tracking-wide mb-0.5 md:mb-2">
               THE 2026 <span className="text-red-600">ERA</span>
             </h1>
-            <p className="text-gray-400 text-xs md:text-sm">Welcome back to the MAX33 Hub.</p>
+            <p className="text-gray-400 text-[10px] md:text-sm">Welcome back to the MAX33 Hub.</p>
           </div>
           <button onClick={() => setIsMinimized(false)} className="bg-slate-800/80 hover:bg-slate-700 text-white p-2 rounded-full backdrop-blur transition border border-slate-700">
-            <ChevronDown size={20} />
+            <ChevronDown size={18} className="md:w-5 md:h-5" />
           </button>
         </div>
       )}
 
       {!isMinimized && (
-        <div className="p-10 md:w-1/2 z-20 flex flex-col justify-center bg-gradient-to-r from-slate-950 to-transparent">
-          <h1 className="text-4xl md:text-6xl font-black text-white mb-6 uppercase italic tracking-wide leading-tight">
+        <div className="p-6 md:p-10 w-full md:w-1/2 z-20 flex flex-col justify-center h-full bg-gradient-to-t md:bg-gradient-to-r from-slate-950 via-slate-950/80 to-transparent">
+          {/* 🔥 手機版字體 text-3xl，電腦版 text-6xl */}
+          <h1 className="text-3xl md:text-6xl font-black text-white mb-3 md:mb-6 uppercase italic tracking-wide leading-tight">
             Embrace The <br/><span className="text-red-600">New Rules</span>
           </h1>
-          <p className="text-gray-300 leading-relaxed mb-8 text-lg max-w-md">
+          <p className="text-gray-300 leading-relaxed mb-6 md:mb-8 text-sm md:text-lg max-w-md line-clamp-3 md:line-clamp-none">
             The 2026 regulations redefine Formula 1. With active aerodynamics and a 50/50 power split, witness Max Verstappen's journey to absolute dominance.
           </p>
-          <div className="flex gap-4 items-center">
-            <span className="px-5 py-2 bg-red-600/20 text-red-500 font-bold rounded border border-red-600/50 shadow-[0_0_15px_rgba(220,38,38,0.3)] animate-pulse">Simply Lovely.</span>
-            <button onClick={() => setIsMinimized(true)} className="ml-auto flex items-center gap-1 text-sm text-gray-400 hover:text-white transition bg-slate-900/50 px-3 py-1 rounded-full">
-              Minimize <ChevronUp size={16} />
+          <div className="flex gap-3 md:gap-4 items-center">
+            <span className="px-4 py-2 md:px-5 md:py-2 bg-red-600/20 text-red-500 font-bold rounded border border-red-600/50 shadow-[0_0_15px_rgba(220,38,38,0.3)] animate-pulse text-xs md:text-base">Simply Lovely.</span>
+            <button onClick={() => setIsMinimized(true)} className="ml-auto flex items-center gap-1 text-xs md:text-sm text-gray-400 hover:text-white transition bg-slate-900/50 px-3 py-1 rounded-full">
+              Minimize <ChevronUp size={14} />
             </button>
           </div>
         </div>
       )}
 
-      <div className="absolute inset-0 z-10">
-        <div className="absolute inset-0 bg-gradient-to-t md:bg-gradient-to-r from-slate-950 via-slate-900/60 to-transparent z-10"></div>
+      <div className="absolute inset-0 z-10 pointer-events-none">
+        <div className="absolute inset-0 bg-gradient-to-t md:bg-gradient-to-r from-slate-950 via-slate-900/40 to-transparent z-10"></div>
         <img 
           src="https://images.unsplash.com/photo-1541336032412-2048a678540d?q=80&w=1500&auto=format&fit=crop" 
           alt="F1 Racing" 
-          className="object-cover w-full h-full opacity-70 grayscale-[10%]"
+          className="object-cover w-full h-full opacity-60 grayscale-[10%]"
         />
       </div>
     </section>
