@@ -5,7 +5,7 @@ import HeroBanner from '@/components/HeroBanner';
 import { db } from "@/lib/firebase";
 import { doc, getDoc } from "firebase/firestore";
 
-export const revalidate = 3600;
+export const revalidate = 0;
 
 // 🏎️ 抓取真實 F1 數據 (使用開源的 Jolpica API)
 async function getRealF1Data() {
