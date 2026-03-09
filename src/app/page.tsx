@@ -1,4 +1,4 @@
-import { Trophy, Zap, MessageSquare, Flag, Radio, Star, Home as HomeIcon, TrendingUp } from 'lucide-react';
+import { Trophy, Zap, MessageSquare, Flag, Radio, Star, Home as HomeIcon, TrendingUp, Camera } from 'lucide-react';
 import CommentBoard from '@/components/CommentBoard';
 import VoiceOfDay from '@/components/VoiceOfDay';
 import HeroBanner from '@/components/HeroBanner';
