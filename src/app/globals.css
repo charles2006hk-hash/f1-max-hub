@@ -9,3 +9,12 @@ body {
   background-color: var(--color-dark-bg);
   color: #e2e8f0;
 }
+
+@keyframes marquee {
+  0% { transform: translateY(0%); }
+  100% { transform: translateY(-50%); }
+}
+
+.animate-marquee {
+  animation: marquee 30s linear infinite;
+}
