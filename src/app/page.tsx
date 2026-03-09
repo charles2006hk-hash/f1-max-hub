@@ -7,46 +7,55 @@ import { doc, getDoc } from "firebase/firestore";
 
 export const revalidate = 0;
 
-// 🏎️ 抓取真實 F1 數據 (高智慧防呆版)
+// 🏎️ 抓取真實 F1 數據 (究極獨立防呆版)
 async function getRealF1Data() {
+  let standings = [];
+  let upcomingRaces = [];
+
+  // 🛡️ 任務一：獨立抓取積分榜
   try {
-    const [standingsRes, scheduleRes] = await Promise.all([
-      fetch('https://api.jolpica.com/f1/current/driverStandings.json', { cache: 'no-store' }),
-      fetch('https://api.jolpica.com/f1/current.json', { cache: 'no-store' })
-    ]);
+    const standingsRes = await fetch('https://api.jolpica.com/f1/current/driverStandings.json', { cache: 'no-store' });
     const standingsData = await standingsRes.json();
-    const scheduleData = await scheduleRes.json();
-    
-    // 安全解析積分榜 (如果 2026 剛開季沒人拿分，就去抓 2025 的最終成績來展示)
-    let standings = [];
-    const standingsLists = standingsData.MRData?.StandingsTable?.StandingsLists;
-    
-    if (standingsLists && standingsLists.length > 0) {
-      standings = standingsLists[0].DriverStandings.slice(0, 5);
+    const lists = standingsData.MRData?.StandingsTable?.StandingsLists;
+
+    if (lists && lists.length > 0) {
+      standings = lists[0].DriverStandings.slice(0, 5);
     } else {
-      // 💡 智慧防呆：抓取前一年的資料來墊檔，確保畫面不會空空的
-      const fallbackRes = await fetch('https://api.jolpica.com/f1/2025/driverStandings.json');
-      const fallbackData = await fallbackRes.json();
-      if (fallbackData.MRData?.StandingsTable?.StandingsLists?.length > 0) {
-        standings = fallbackData.MRData.StandingsTable.StandingsLists[0].DriverStandings.slice(0, 5);
+      // 備案：如果今年沒積分，抓去年的最終成績
+      const fbRes = await fetch('https://api.jolpica.com/f1/2025/driverStandings.json', { cache: 'no-store' });
+      const fbData = await fbRes.json();
+      if (fbData.MRData?.StandingsTable?.StandingsLists?.length > 0) {
+        standings = fbData.MRData.StandingsTable.StandingsLists[0].DriverStandings.slice(0, 5);
       }
     }
+  } catch (error) {
+    console.error("Standings API Failed:", error);
+  }
 
-    // 安全解析賽程表 (過濾掉已經比完的賽事)
-    let upcomingRaces = [];
-    const races = scheduleData.MRData?.RaceTable?.Races;
+  // 🛡️ 任務二：獨立抓取賽程表
+  try {
+    const scheduleRes = await fetch('https://api.jolpica.com/f1/current.json', { cache: 'no-store' });
+    const scheduleData = await scheduleRes.json();
+    let races = scheduleData.MRData?.RaceTable?.Races;
+
+    // 備案：如果今年賽程 API 是空的，去抓去年的來展示
+    if (!races || races.length === 0) {
+      const fbRes = await fetch('https://api.jolpica.com/f1/2025.json', { cache: 'no-store' });
+      const fbData = await fbRes.json();
+      races = fbData.MRData?.RaceTable?.Races || [];
+    }
+
     if (races && races.length > 0) {
       const now = new Date();
       upcomingRaces = races.filter((r: any) => new Date(r.date) >= now).slice(0, 3);
-      // 如果今年所有比賽都比完了，顯示最後三場
+      // 如果今年/去年的比賽都已經比完了，就顯示最後的三場
       if (upcomingRaces.length === 0) upcomingRaces = races.slice(-3);
     }
-    
-    return { standings, upcomingRaces };
   } catch (error) {
-    console.error("F1 API Failed", error);
-    return { standings: [], upcomingRaces: [] };
+    console.error("Schedule API Failed:", error);
   }
+
+  return { standings, upcomingRaces };
 }
 
 // 📺 從 Firebase 讀取你後台發佈的內容
