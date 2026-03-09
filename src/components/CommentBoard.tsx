@@ -240,7 +240,7 @@ export default function CommentBoard() {
                     <img 
                       src={img} 
                       alt="post" 
-                      className={`w-full ${comment.images.length === 1 ? 'h-auto max-h-96' : 'h-32'} object-cover border border-slate-800 group-hover/img:scale-105 transition duration-300 cursor-zoom-in`} 
+                      className={`w-full ${comment.images?.length === 1 ? 'h-auto max-h-96' : 'h-32'} object-cover border border-slate-800 group-hover/img:scale-105 transition duration-300 cursor-zoom-in`} 
                       onClick={() => openLightbox(comment.images!, i)} // 🔥 點擊放大
                     />
                     <div className="absolute inset-0 bg-black/50 opacity-0 group-hover/img:opacity-100 transition flex items-center justify-center pointer-events-none">
