@@ -3,9 +3,9 @@ import CommentBoard from '@/components/CommentBoard';
 import VoiceOfDay from '@/components/VoiceOfDay';
 import HeroBanner from '@/components/HeroBanner';
 import { db } from "@/lib/firebase";
-import { doc, getDoc } from "firebase/firestore";
+import { doc, getDoc, getDocs, collection, query, where, limit } from "firebase/firestore";
 
-// 🔥 關鍵修正 1：設定為 0，確保你後台一按發佈，首頁立刻秒更新！
+// 🔥 確保後台發佈後秒更新
 export const revalidate = 0;
 
 async function getCmsData() {
@@ -20,29 +20,34 @@ async function getCmsData() {
   };
 }
 
+// 🔥 新增：抓取 The Vault 中已批准的最新 10 張照片，用來做首頁膠卷
+async function getVaultPhotos() {
+  try {
+    const q = query(collection(db, "max_gallery"), where("status", "==", "approved"), limit(10));
+    const snap = await getDocs(q);
+    return snap.docs.map(doc => doc.data().imageUrl);
+  } catch (e) { return []; }
+}
+
 export default async function Home() {
   const cmsData = await getCmsData();
+  const vaultPhotos = await getVaultPhotos();
   
-  // 🔥 關鍵修正 2：安全地解析你從後台傳過來的 JSON 數據
+  // 安全地解析從後台傳過來的 JSON 數據
   let standings = [];
   let races = [];
   try {
     standings = JSON.parse(cmsData.standingsData || "[]");
     races = JSON.parse(cmsData.racesData || "[]");
     
-    // 防呆機制：如果你後台還沒存過資料，先給一組預設展示資料
     if (standings.length === 0) {
       standings = [
         { pos: 1, driver: "VER", team: "Red Bull", pts: 26, trend: "up" },
         { pos: 2, "driver": "LEC", "team": "Ferrari", "pts": 18, "trend": "same" }
       ];
-      races = [
-        { date: "MAR 22", name: "Saudi Arabian GP", status: "UPCOMING" }
-      ];
+      races = [{ date: "MAR 22", name: "Saudi Arabian GP", status: "UPCOMING" }];
     }
-  } catch (e) {
-    console.error("Failed to parse F1 data JSON from CMS");
-  }
+  } catch (e) { console.error("Failed to parse F1 data JSON"); }
 
   return (
     <main className="min-h-screen bg-slate-950 text-gray-200 selection:bg-orange-500 selection:text-white pb-24 md:pb-20 scroll-smooth font-sans relative overflow-hidden">
@@ -56,12 +61,10 @@ export default async function Home() {
       <nav className="border-b border-blue-900/50 bg-slate-950/90 backdrop-blur-md sticky top-0 z-40">
         <div className="container mx-auto px-4 md:px-6 py-3 md:py-4 flex justify-between items-center max-w-7xl relative z-10">
           <div className="flex items-center gap-3">
-            {/* 🔥 顏色加入一點荷蘭橘 */}
             <span className="text-orange-500 font-black text-xl md:text-2xl italic tracking-tighter">MAX<span className="text-white">33</span> Hub</span>
           </div>
           <div className="hidden md:flex gap-8 items-center font-bold text-sm">
-            <a href="/legacy" className="text-gray-300 hover:text-white transition flex items-center gap-1"><Zap size={14} className="text-yellow-400"/> Legacy</a>
-            {/* 🔥 新增相集導航 */}
+            <a href="/legacy" className="text-gray-300 hover:text-white transition flex items-center gap-1"><Zap size={14} className="text-yellow-400 animate-pulse"/> Legacy</a>
             <a href="/gallery" className="text-gray-300 hover:text-white transition flex items-center gap-1"><Camera size={14} className="text-orange-500"/> Vault</a>
             <a href="#paddock-feed" className="text-gray-300 hover:text-white transition flex items-center gap-1 relative">
               <MessageSquare size={14} className="text-blue-400"/> Paddock Feed
@@ -76,7 +79,6 @@ export default async function Home() {
         {/* Max's Legacy 探索卡片 */}
         <section className="bg-gradient-to-br from-slate-900 to-slate-950 p-5 md:p-8 rounded-2xl border border-slate-800 flex flex-col md:flex-row items-start md:items-center gap-4 md:gap-6 shadow-xl hover:border-orange-500/30 transition group">
           <div className="flex items-center gap-4 w-full md:w-auto">
-            {/* 🔥 卡片圖示改為代表荷蘭與 Max 的橘色系 */}
             <div className="p-3 rounded-full bg-orange-500/10 border-2 border-orange-500/20 shrink-0 group-hover:scale-110 transition-transform"><Star size={24} className="text-orange-500"/></div>
             <div className="flex-1">
               <h2 className="text-lg md:text-xl font-bold text-white mb-1">Max Verstappen's Legacy</h2>
@@ -86,7 +88,25 @@ export default async function Home() {
           <a href="/legacy" className="bg-orange-600 hover:bg-orange-500 text-white px-6 py-3 md:py-2 rounded-full text-sm font-bold active:scale-95 transition w-full md:w-auto text-center mt-2 md:mt-0 shadow-lg shadow-orange-900/20">Explore History</a>
         </section>
 
-        {/* --- (這裡保留你原本的 AI News, Tech Intel, CommentBoard 與 右側 Standings) --- */}
+        {/* 🔥 全新：無縫水平滾動相片膠卷 (The Vault Filmstrip) */}
+        {vaultPhotos.length > 0 && (
+          <section className="overflow-hidden relative w-full rounded-2xl border border-slate-800 bg-slate-950/50 p-3 group">
+            <div className="absolute top-3 left-4 z-20 bg-black/60 backdrop-blur-md px-2 py-1 rounded border border-orange-500/30 flex items-center gap-1">
+               <span className="w-1.5 h-1.5 bg-orange-500 rounded-full animate-pulse"></span>
+               <span className="text-[10px] text-orange-400 font-bold uppercase">The Vault</span>
+            </div>
+            <div className="flex w-max animate-marquee-x hover:[animation-play-state:paused] gap-3">
+              {[...vaultPhotos, ...vaultPhotos].map((photo, i) => (
+                <a href="/gallery" key={i} className="relative w-40 h-28 md:w-56 md:h-36 shrink-0 rounded-lg overflow-hidden border border-slate-800 hover:border-orange-500 transition-colors cursor-pointer block">
+                  <img src={photo} alt="vault preview" className="w-full h-full object-cover opacity-70 hover:opacity-100 hover:scale-110 transition duration-500" />
+                </a>
+              ))}
+            </div>
+            <div className="absolute top-0 left-0 w-12 md:w-20 h-full bg-gradient-to-r from-slate-950 to-transparent z-10 pointer-events-none"></div>
+            <div className="absolute top-0 right-0 w-12 md:w-20 h-full bg-gradient-to-l from-slate-950 to-transparent z-10 pointer-events-none"></div>
+          </section>
+        )}
+
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 md:gap-10">
           
           <div className="lg:col-span-2 space-y-12 md:space-y-16">
@@ -192,8 +212,7 @@ export default async function Home() {
         </div>
       </div>
 
-      {/* 🔥 手機版導航也加入了 Vault (相集) */}
-      <div className="md:hidden fixed bottom-0 left-0 right-0 bg-slate-950/95 backdrop-blur-xl border-t border-slate-800/80 z-50 px-6 py-2 pb-[calc(env(safe-area-bottom)+8px)] flex justify-between items-center shadow-[0_-10px_40px_rgba(0,0,0,0.5)]">
+      <div className="md:hidden fixed bottom-0 left-0 right-0 bg-slate-950/95 backdrop-blur-xl border-t border-slate-800/80 z-50 px-6 py-2 pb-[calc(env(safe-area-inset-bottom)+8px)] flex justify-between items-center shadow-[0_-10px_40px_rgba(0,0,0,0.5)]">
         <a href="#" className="flex flex-col items-center gap-1 text-slate-400 hover:text-white"><HomeIcon size={20} /><span className="text-[10px] font-bold">Home</span></a>
         <a href="#standings" className="flex flex-col items-center gap-1 text-slate-400 hover:text-white transition"><Flag size={20} /><span className="text-[10px] font-bold">Data</span></a>
         <a href="#paddock-feed" className="flex flex-col items-center gap-1 text-slate-400 hover:text-white transition relative"><MessageSquare size={20} /><span className="absolute top-0 right-0 w-2 h-2 bg-red-500 rounded-full"></span><span className="text-[10px] font-bold">Feed</span></a>
