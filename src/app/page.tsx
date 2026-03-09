@@ -7,26 +7,45 @@ import { doc, getDoc } from "firebase/firestore";
 
 export const revalidate = 0;
 
-// 🏎️ 抓取真實 F1 數據 (使用開源的 Jolpica API)
+// 🏎️ 抓取真實 F1 數據 (高智慧防呆版)
 async function getRealF1Data() {
   try {
     const [standingsRes, scheduleRes] = await Promise.all([
-      fetch('https://api.jolpica.com/f1/current/driverStandings.json', { next: { revalidate: 3600 } }),
-      fetch('https://api.jolpica.com/f1/current.json', { next: { revalidate: 3600 } })
+      fetch('https://api.jolpica.com/f1/current/driverStandings.json', { cache: 'no-store' }),
+      fetch('https://api.jolpica.com/f1/current.json', { cache: 'no-store' })
     ]);
     const standingsData = await standingsRes.json();
     const scheduleData = await scheduleRes.json();
     
-    // 取前 5 名車手
-    const standings = standingsData.MRData.StandingsTable.StandingsLists[0].DriverStandings.slice(0, 5);
-    // 取接下來的 3 場比賽
-    const now = new Date();
-    const upcomingRaces = scheduleData.MRData.RaceTable.Races.filter((r: any) => new Date(r.date) >= now).slice(0, 3);
+    // 安全解析積分榜 (如果 2026 剛開季沒人拿分，就去抓 2025 的最終成績來展示)
+    let standings = [];
+    const standingsLists = standingsData.MRData?.StandingsTable?.StandingsLists;
+    
+    if (standingsLists && standingsLists.length > 0) {
+      standings = standingsLists[0].DriverStandings.slice(0, 5);
+    } else {
+      // 💡 智慧防呆：抓取前一年的資料來墊檔，確保畫面不會空空的
+      const fallbackRes = await fetch('https://api.jolpica.com/f1/2025/driverStandings.json');
+      const fallbackData = await fallbackRes.json();
+      if (fallbackData.MRData?.StandingsTable?.StandingsLists?.length > 0) {
+        standings = fallbackData.MRData.StandingsTable.StandingsLists[0].DriverStandings.slice(0, 5);
+      }
+    }
+
+    // 安全解析賽程表 (過濾掉已經比完的賽事)
+    let upcomingRaces = [];
+    const races = scheduleData.MRData?.RaceTable?.Races;
+    if (races && races.length > 0) {
+      const now = new Date();
+      upcomingRaces = races.filter((r: any) => new Date(r.date) >= now).slice(0, 3);
+      // 如果今年所有比賽都比完了，顯示最後三場
+      if (upcomingRaces.length === 0) upcomingRaces = races.slice(-3);
+    }
     
     return { standings, upcomingRaces };
   } catch (error) {
     console.error("F1 API Failed", error);
-    return { standings: [], upcomingRaces: [] }; // 失敗時回傳空陣列防呆
+    return { standings: [], upcomingRaces: [] };
   }
 }
 
