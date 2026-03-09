@@ -112,8 +112,9 @@ export default function AdminPage() {
           {/* 🔥 區塊 2：Live Data Center 控制 */}
           <div className="border border-slate-800 rounded-xl p-6 bg-slate-950 space-y-6">
             <h2 className="text-xl font-bold flex items-center gap-2 text-red-500"><Database size={24}/> 2. Live Data Center (Standings & Races)</h2>
+            {/* 將原本的文字改為更專業的描述 */}
             <button onClick={generateF1Data} disabled={f1Loading} className="w-full bg-red-600/20 text-red-500 border border-red-600/50 py-3 rounded-lg font-bold flex justify-center items-center gap-2 hover:bg-red-600/40 transition">
-              {f1Loading ? <Loader2 className="animate-spin" size={20} /> : "📊 請 AI 抓取最新 F1 賽事資料"}
+              {f1Loading ? <Loader2 className="animate-spin" size={20} /> : <><Database size={20}/> 從 F1 官網同步 2026 最新數據</>}
             </button>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div className="space-y-3">
