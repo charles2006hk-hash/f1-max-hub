@@ -45,16 +45,24 @@ export default async function Home() {
   }
 
   return (
-    <main className="min-h-screen bg-slate-950 text-gray-200 selection:bg-red-600 selection:text-white pb-24 md:pb-20 scroll-smooth font-sans">
+    <main className="min-h-screen bg-slate-950 text-gray-200 selection:bg-orange-500 selection:text-white pb-24 md:pb-20 scroll-smooth font-sans relative overflow-hidden">
       
+      {/* 🔥 Max 專屬靈魂：超大霸氣背景浮水印 */}
+      <div className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 text-[30vw] font-black text-white/[0.02] italic pointer-events-none select-none z-0 whitespace-nowrap">
+        MV33
+      </div>
+
       {/* 導航列 */}
-      <nav className="border-b border-blue-900/50 bg-blue-950/90 backdrop-blur-md sticky top-0 z-40">
-        <div className="container mx-auto px-4 md:px-6 py-3 md:py-4 flex justify-between items-center max-w-7xl">
+      <nav className="border-b border-blue-900/50 bg-slate-950/90 backdrop-blur-md sticky top-0 z-40">
+        <div className="container mx-auto px-4 md:px-6 py-3 md:py-4 flex justify-between items-center max-w-7xl relative z-10">
           <div className="flex items-center gap-3">
-            <span className="text-yellow-400 font-black text-xl md:text-2xl italic tracking-tighter">MAX<span className="text-white">33</span> Hub</span>
+            {/* 🔥 顏色加入一點荷蘭橘 */}
+            <span className="text-orange-500 font-black text-xl md:text-2xl italic tracking-tighter">MAX<span className="text-white">33</span> Hub</span>
           </div>
           <div className="hidden md:flex gap-8 items-center font-bold text-sm">
-            <a href="/legacy" className="text-gray-300 hover:text-white transition flex items-center gap-1"><Zap size={14} className="text-yellow-400 animate-pulse"/> Legacy of Max</a>
+            <a href="/legacy" className="text-gray-300 hover:text-white transition flex items-center gap-1"><Zap size={14} className="text-yellow-400"/> Legacy</a>
+            {/* 🔥 新增相集導航 */}
+            <a href="/gallery" className="text-gray-300 hover:text-white transition flex items-center gap-1"><Camera size={14} className="text-orange-500"/> Vault</a>
             <a href="#paddock-feed" className="text-gray-300 hover:text-white transition flex items-center gap-1 relative">
               <MessageSquare size={14} className="text-blue-400"/> Paddock Feed
             </a>
@@ -62,21 +70,23 @@ export default async function Home() {
         </div>
       </nav>
 
-      <div className="container mx-auto px-4 md:px-6 py-6 md:py-8 max-w-7xl space-y-8 md:space-y-12">
+      <div className="container mx-auto px-4 md:px-6 py-6 md:py-8 max-w-7xl space-y-8 md:space-y-12 relative z-10">
         <HeroBanner />
 
         {/* Max's Legacy 探索卡片 */}
-        <section className="bg-gradient-to-br from-slate-900 to-slate-950 p-5 md:p-8 rounded-2xl border border-slate-800 flex flex-col md:flex-row items-start md:items-center gap-4 md:gap-6 shadow-xl hover:border-yellow-600/50 transition">
+        <section className="bg-gradient-to-br from-slate-900 to-slate-950 p-5 md:p-8 rounded-2xl border border-slate-800 flex flex-col md:flex-row items-start md:items-center gap-4 md:gap-6 shadow-xl hover:border-orange-500/30 transition group">
           <div className="flex items-center gap-4 w-full md:w-auto">
-            <div className="p-3 rounded-full bg-yellow-400/10 border-2 border-yellow-400/20 shrink-0"><Star size={24} className="text-yellow-400"/></div>
+            {/* 🔥 卡片圖示改為代表荷蘭與 Max 的橘色系 */}
+            <div className="p-3 rounded-full bg-orange-500/10 border-2 border-orange-500/20 shrink-0 group-hover:scale-110 transition-transform"><Star size={24} className="text-orange-500"/></div>
             <div className="flex-1">
               <h2 className="text-lg md:text-xl font-bold text-white mb-1">Max Verstappen's Legacy</h2>
               <p className="text-gray-400 text-xs md:text-sm">From karting miracles to World Champion status.</p>
             </div>
           </div>
-          <a href="/legacy" className="bg-yellow-400 text-slate-950 px-6 py-3 md:py-2 rounded-full text-sm font-bold active:scale-95 transition w-full md:w-auto text-center mt-2 md:mt-0">Explore Now</a>
+          <a href="/legacy" className="bg-orange-600 hover:bg-orange-500 text-white px-6 py-3 md:py-2 rounded-full text-sm font-bold active:scale-95 transition w-full md:w-auto text-center mt-2 md:mt-0 shadow-lg shadow-orange-900/20">Explore History</a>
         </section>
 
+        {/* --- (這裡保留你原本的 AI News, Tech Intel, CommentBoard 與 右側 Standings) --- */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 md:gap-10">
           
           <div className="lg:col-span-2 space-y-12 md:space-y-16">
@@ -124,7 +134,6 @@ export default async function Home() {
           <div className="lg:col-span-1 space-y-8 md:space-y-10">
             <section><VoiceOfDay /></section>
             
-            {/* 🔥 資訊屏現在完全吃後台的 standings 和 races 變數！ */}
             <section id="standings" className="bg-slate-900 border border-slate-800 rounded-2xl overflow-hidden shadow-2xl shadow-blue-900/10 flex flex-col h-[500px]">
               <div className="p-4 md:p-5 border-b border-slate-800 bg-slate-950 flex justify-between items-center z-10 relative shadow-md">
                 <h3 className="font-black text-white flex items-center gap-2 uppercase tracking-widest text-sm md:text-base">
@@ -138,7 +147,6 @@ export default async function Home() {
               <div className="flex-1 overflow-hidden relative bg-slate-950/50 group">
                 <div className="absolute w-full animate-marquee hover:[animation-play-state:paused] flex flex-col">
                   
-                  {/* 第一塊：從 Firebase 讀取的積分榜 */}
                   <div className="p-4 space-y-2 mb-8">
                     <div className="text-xs text-slate-500 font-bold uppercase tracking-widest mb-3 border-b border-slate-800 pb-2">Driver Standings</div>
                     {standings.map((driver: any, i: number) => (
@@ -155,7 +163,6 @@ export default async function Home() {
                     ))}
                   </div>
 
-                  {/* 第二塊：從 Firebase 讀取的賽程表 */}
                   <div className="p-4 space-y-2 mb-8 border-t border-slate-800/50 pt-6">
                     <div className="text-xs text-slate-500 font-bold uppercase tracking-widest mb-3 border-b border-slate-800 pb-2">Race Calendar</div>
                     {races.map((race: any, i: number) => (
@@ -185,11 +192,13 @@ export default async function Home() {
         </div>
       </div>
 
-      <div className="md:hidden fixed bottom-0 left-0 right-0 bg-slate-950/95 backdrop-blur-xl border-t border-slate-800/80 z-50 px-6 py-2 pb-[calc(env(safe-area-inset-bottom)+8px)] flex justify-between items-center shadow-[0_-10px_40px_rgba(0,0,0,0.5)]">
-        <a href="#" className="flex flex-col items-center gap-1 text-blue-400"><HomeIcon size={22} /><span className="text-[10px] font-bold">Home</span></a>
-        <a href="#standings" className="flex flex-col items-center gap-1 text-slate-400 hover:text-white transition"><Flag size={22} /><span className="text-[10px] font-bold">Data</span></a>
-        <a href="#paddock-feed" className="flex flex-col items-center gap-1 text-slate-400 hover:text-white transition relative"><MessageSquare size={22} /><span className="absolute top-0 right-0 w-2 h-2 bg-red-500 rounded-full"></span><span className="text-[10px] font-bold">Feed</span></a>
-        <a href="/legacy" className="flex flex-col items-center gap-1 text-slate-400 hover:text-white transition"><Zap size={22} className="text-yellow-500"/><span className="text-[10px] font-bold">Legacy</span></a>
+      {/* 🔥 手機版導航也加入了 Vault (相集) */}
+      <div className="md:hidden fixed bottom-0 left-0 right-0 bg-slate-950/95 backdrop-blur-xl border-t border-slate-800/80 z-50 px-6 py-2 pb-[calc(env(safe-area-bottom)+8px)] flex justify-between items-center shadow-[0_-10px_40px_rgba(0,0,0,0.5)]">
+        <a href="#" className="flex flex-col items-center gap-1 text-slate-400 hover:text-white"><HomeIcon size={20} /><span className="text-[10px] font-bold">Home</span></a>
+        <a href="#standings" className="flex flex-col items-center gap-1 text-slate-400 hover:text-white transition"><Flag size={20} /><span className="text-[10px] font-bold">Data</span></a>
+        <a href="#paddock-feed" className="flex flex-col items-center gap-1 text-slate-400 hover:text-white transition relative"><MessageSquare size={20} /><span className="absolute top-0 right-0 w-2 h-2 bg-red-500 rounded-full"></span><span className="text-[10px] font-bold">Feed</span></a>
+        <a href="/legacy" className="flex flex-col items-center gap-1 text-slate-400 hover:text-white transition"><Zap size={20}/><span className="text-[10px] font-bold">Legacy</span></a>
+        <a href="/gallery" className="flex flex-col items-center gap-1 text-orange-500 transition"><Camera size={20}/><span className="text-[10px] font-bold">Vault</span></a>
       </div>
     </main>
   );
