@@ -187,14 +187,19 @@ export default function CommentBoard() {
           </div>
         )}
 
-        <div className="flex justify-between items-center mt-2 border-t border-slate-800 pt-3">
-          <div className="flex gap-4">
-            <button onClick={() => setShowEmoji(!showEmoji)} className="text-slate-400 hover:text-yellow-400 flex items-center gap-1 text-sm transition"><Smile size={18} /> Emoji</button>
+        {/* 🔥 以下是針對 iPhone 優化過觸控熱區的底部按鈕列 */}
+        <div className="flex justify-between items-center mt-3 border-t border-slate-800 pt-4">
+          <div className="flex gap-3 md:gap-4">
+            <button onClick={() => setShowEmoji(!showEmoji)} className="text-slate-400 hover:text-yellow-400 flex items-center gap-1.5 text-xs md:text-sm transition bg-slate-900 md:bg-transparent px-3 py-2 md:px-0 md:py-0 rounded-lg">
+              <Smile size={18} /> <span className="hidden md:inline">Emoji</span>
+            </button>
             <input type="file" accept="image/*" multiple ref={fileInputRef} className="hidden" onChange={handleImageUpload} />
-            <button onClick={() => fileInputRef.current?.click()} className="text-slate-400 hover:text-blue-400 flex items-center gap-1 text-sm transition"><ImagePlus size={18} /> Media ({images.length}/6)</button>
+            <button onClick={() => fileInputRef.current?.click()} className="text-slate-400 hover:text-blue-400 flex items-center gap-1.5 text-xs md:text-sm transition bg-slate-900 md:bg-transparent px-3 py-2 md:px-0 md:py-0 rounded-lg">
+              <ImagePlus size={18} /> Media <span className="text-[10px] bg-slate-800 px-1.5 rounded">{images.length}/6</span>
+            </button>
           </div>
-          <button onClick={handleAddComment} className={`${isAdmin ? 'bg-red-600' : 'bg-blue-600'} text-white px-5 py-2 rounded-full font-bold flex items-center gap-2 active:scale-95 transition`}>
-            {isAdmin ? "Post Update" : "Send"} <Send size={14} />
+          <button onClick={handleAddComment} className={`${isAdmin ? 'bg-red-600' : 'bg-blue-600'} text-white px-6 py-2.5 rounded-full font-bold flex items-center gap-2 active:scale-95 transition text-sm shadow-lg shadow-blue-900/20`}>
+            {isAdmin ? "Post Update" : "Send"} <Send size={16} />
           </button>
         </div>
       </div>
