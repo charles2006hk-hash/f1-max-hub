@@ -1,46 +1,57 @@
 "use client";
 
 import { useState, useEffect } from 'react';
-import { ArrowLeft, Camera, ImageIcon, Loader2 } from 'lucide-react';
+import { ArrowLeft, Camera, ImageIcon, Loader2, Star } from 'lucide-react';
 import Lightbox from '@/components/Lightbox';
 import { db } from "@/lib/firebase";
-import { collection, query, where, orderBy, onSnapshot } from "firebase/firestore";
+import { collection, query, where, onSnapshot, doc, updateDoc, increment } from "firebase/firestore";
+
+interface VaultPhoto {
+  id: string;
+  imageUrl: string;
+  likes: number;
+  time: number;
+}
 
 export default function GalleryPage() {
   const [lightboxState, setLightboxState] = useState({ isOpen: false, currentIndex: 0 });
-  const [photos, setPhotos] = useState<any[]>([]);
+  const [photos, setPhotos] = useState<VaultPhoto[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // 🔥 移除 Firebase 的 orderBy 以避開複合索引錯誤
+    // 拿掉 orderBy 避開複合索引錯誤
     const q = query(collection(db, "max_gallery"), where("status", "==", "approved"));
-    
     const unsubscribe = onSnapshot(q, (snapshot) => {
-      // 1. 抓取資料並帶上時間戳記
-      const fetchedPhotos = snapshot.docs.map(doc => {
-        const data = doc.data();
-        return {
-          imageUrl: data.imageUrl,
-          // 如果沒有時間就給 0，避免報錯
-          time: data.createdAt?.toMillis() || 0 
-        };
-      });
-      
-      // 2. 用 JavaScript 在本地端將最新照片排在最前面
+      const fetchedPhotos = snapshot.docs.map(d => ({
+        id: d.id,
+        imageUrl: d.data().imageUrl,
+        likes: d.data().likes || 0,
+        time: d.data().createdAt?.toMillis() || 0
+      }));
+      // 依照時間排序
       fetchedPhotos.sort((a, b) => b.time - a.time);
-      
-      // 3. 更新畫面
-      setPhotos(fetchedPhotos.map(p => p.imageUrl));
+      setPhotos(fetchedPhotos);
       setLoading(false);
-    }, (error) => {
-      console.error("Gallery Error:", error);
-      setLoading(false); // 就算報錯也解除 loading 狀態
     });
-
     return () => unsubscribe();
   }, []);
 
+  // 🔥 粉絲評分系統
+  const handleRate = async (e: React.MouseEvent, photoId: string) => {
+    e.stopPropagation(); // 防止觸發打開燈箱
+    const hasRated = localStorage.getItem(`max33_rated_${photoId}`);
+    if (hasRated) {
+      alert("You have already rated this photo!");
+      return;
+    }
+    await updateDoc(doc(db, "max_gallery", photoId), { likes: increment(1) });
+    localStorage.setItem(`max33_rated_${photoId}`, "true");
+  };
+
   const openLightbox = (index: number) => setLightboxState({ isOpen: true, currentIndex: index });
+
+  // 為了傳給 Lightbox，只需要純圖片網址陣列
+  const pureImageUrls = photos.map(p => p.imageUrl);
 
   return (
     <main className="min-h-screen bg-slate-950 text-gray-200 selection:bg-orange-500 selection:text-white pb-24 md:pb-20 font-sans">
@@ -54,20 +65,30 @@ export default function GalleryPage() {
       <div className="container mx-auto px-4 md:px-6 py-8 md:py-12 max-w-7xl space-y-8">
         <div className="text-center space-y-4 max-w-2xl mx-auto mb-12">
           <h1 className="text-4xl md:text-5xl font-black text-white uppercase italic tracking-wide">Max's <span className="text-orange-500">Vault</span></h1>
-          <p className="text-gray-400">Curated by Admin Jason. The ultimate collection of absolute dominance submitted by the Orange Army.</p>
+          <p className="text-gray-400">Curated by Admin Jason. Rate the most iconic moments of absolute dominance.</p>
         </div>
 
         {loading ? (
           <div className="flex justify-center items-center py-20"><Loader2 className="animate-spin text-orange-500" size={40} /></div>
         ) : photos.length === 0 ? (
-          <div className="text-center text-slate-500 py-20">The Vault is currently empty. Submit photos in the Paddock Feed!</div>
+          <div className="text-center text-slate-500 py-20">The Vault is currently empty.</div>
         ) : (
           <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 md:gap-4">
             {photos.map((photo, i) => (
-              <div key={i} className="relative group overflow-hidden rounded-xl bg-slate-900 aspect-square cursor-zoom-in border border-slate-800 hover:border-orange-500/50 transition-colors" onClick={() => openLightbox(i)}>
-                {/* 確保照片不裁切文字 */}
-                <img src={photo} alt="Max" className="w-full h-full object-contain bg-black group-hover:scale-105 transition-all duration-500" loading="lazy" />
-                <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center"><ImageIcon size={24} className="text-white"/></div>
+              <div key={photo.id} className="relative group overflow-hidden rounded-xl bg-slate-900 aspect-square cursor-zoom-in border border-slate-800 hover:border-orange-500/50 transition-colors" onClick={() => openLightbox(i)}>
+                
+                <img src={photo.imageUrl} alt="Max" className="w-full h-full object-contain bg-black group-hover:scale-105 transition-all duration-500" loading="lazy" />
+                
+                <div className="absolute inset-0 bg-black/20 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center pointer-events-none"><ImageIcon size={32} className="text-white/70"/></div>
+                
+                {/* 🔥 粉絲評分按鈕 (懸浮在圖片右下角) */}
+                <button 
+                  onClick={(e) => handleRate(e, photo.id)}
+                  className="absolute bottom-2 right-2 bg-slate-900/80 hover:bg-orange-500 border border-slate-700 hover:border-orange-400 backdrop-blur px-3 py-1.5 rounded-full flex items-center gap-1.5 transition-colors z-10"
+                >
+                  <Star size={14} className={photo.likes > 0 ? "text-yellow-400 fill-yellow-400" : "text-slate-400"} />
+                  <span className={`text-xs font-bold ${photo.likes > 0 ? "text-yellow-400" : "text-slate-300"}`}>{photo.likes}</span>
+                </button>
               </div>
             ))}
           </div>
@@ -75,7 +96,7 @@ export default function GalleryPage() {
       </div>
 
       {lightboxState.isOpen && (
-        <Lightbox images={photos} selectedIndex={lightboxState.currentIndex} onClose={() => setLightboxState({ ...lightboxState, isOpen: false })} onPrev={() => setLightboxState(prev => ({ ...prev, currentIndex: (prev.currentIndex - 1 + photos.length) % photos.length }))} onNext={() => setLightboxState(prev => ({ ...prev, currentIndex: (prev.currentIndex + 1) % photos.length }))} />
+        <Lightbox images={pureImageUrls} selectedIndex={lightboxState.currentIndex} onClose={() => setLightboxState({ ...lightboxState, isOpen: false })} onPrev={() => setLightboxState(prev => ({ ...prev, currentIndex: (prev.currentIndex - 1 + pureImageUrls.length) % pureImageUrls.length }))} onNext={() => setLightboxState(prev => ({ ...prev, currentIndex: (prev.currentIndex + 1) % pureImageUrls.length }))} />
       )}
     </main>
   );
