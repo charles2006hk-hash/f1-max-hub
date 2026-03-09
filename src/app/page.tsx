@@ -219,6 +219,49 @@ export default async function Home() {
         <a href="/legacy" className="flex flex-col items-center gap-1 text-slate-400 hover:text-white transition"><Zap size={20}/><span className="text-[10px] font-bold">Legacy</span></a>
         <a href="/gallery" className="flex flex-col items-center gap-1 text-orange-500 transition"><Camera size={20}/><span className="text-[10px] font-bold">Vault</span></a>
       </div>
+      {/* 🔥 在這裡插入「雷射刻蝕感」Footer */}
+      <footer className="py-20 bg-slate-950 flex justify-center border-t border-slate-900/50">
+        <div className="relative px-8 py-6 bg-gradient-to-br from-slate-900 to-slate-950 rounded-lg border border-slate-800 shadow-2xl overflow-hidden group max-w-lg w-full mx-4">
+          
+          {/* 金屬髮絲紋背景效果 (透過 CSS 模擬) */}
+          <div className="absolute inset-0 opacity-5 pointer-events-none bg-[url('https://www.transparenttextures.com/patterns/brushed-alum.png')]"></div>
+          
+          <div className="relative z-10 flex flex-col items-center gap-2">
+            {/* 主版權文字：雷射刻蝕感 */}
+            <h3 className="etched-text text-[10px] md:text-xs font-black uppercase tracking-[0.2em] text-center">
+              © 2026 MAX33 HUB <span className="mx-2 text-slate-800">|</span> ALL SYSTEMS GO
+            </h3>
+            
+            {/* 你的專屬簽名：橙色電鍍刻蝕 */}
+            <div className="flex items-center gap-3 mt-3">
+              <div className="h-[1px] w-6 md:w-10 bg-slate-800"></div>
+              <p className="etched-orange text-[9px] md:text-[11px] font-bold italic tracking-[0.3em] whitespace-nowrap">
+                DESIGNED & DRIVEN BY JASON
+              </p>
+              <div className="h-[1px] w-6 md:w-10 bg-slate-800"></div>
+            </div>
+
+            {/* 底部微小編號：像零件序號一樣 */}
+            <span className="text-[7px] text-slate-700 font-mono mt-4 opacity-40 group-hover:opacity-100 transition duration-500">
+              SERIAL NO. MV33-2026-HKG-001 <span className="ml-2">|</span> VER: 2.5.0-FLASH
+            </span>
+          </div>
+
+          {/* 四個角落的「鉚釘」裝飾 */}
+          <div className="absolute top-2 left-2 w-1 h-1 rounded-full bg-slate-800 shadow-inner"></div>
+          <div className="absolute top-2 right-2 w-1 h-1 rounded-full bg-slate-800 shadow-inner"></div>
+          <div className="absolute bottom-2 left-2 w-1 h-1 rounded-full bg-slate-800 shadow-inner"></div>
+          <div className="absolute bottom-2 right-2 w-1 h-1 rounded-full bg-slate-800 shadow-inner"></div>
+        </div>
+      </footer>
+
+      {/* 手機版底部導航欄 (原本就在這裡) */}
+      <div className="md:hidden fixed bottom-0 left-0 right-0 ...">
+        {/* ... */}
+      </div>
+    </main>
+  );
+}
     </main>
   );
 }
