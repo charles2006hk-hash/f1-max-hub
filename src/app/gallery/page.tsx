@@ -12,12 +12,31 @@ export default function GalleryPage() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // 只抓取被管理員 Approved 的照片
-    const q = query(collection(db, "max_gallery"), where("status", "==", "approved"), orderBy("createdAt", "desc"));
+    // 🔥 移除 Firebase 的 orderBy 以避開複合索引錯誤
+    const q = query(collection(db, "max_gallery"), where("status", "==", "approved"));
+    
     const unsubscribe = onSnapshot(q, (snapshot) => {
-      setPhotos(snapshot.docs.map(doc => doc.data().imageUrl));
+      // 1. 抓取資料並帶上時間戳記
+      const fetchedPhotos = snapshot.docs.map(doc => {
+        const data = doc.data();
+        return {
+          imageUrl: data.imageUrl,
+          // 如果沒有時間就給 0，避免報錯
+          time: data.createdAt?.toMillis() || 0 
+        };
+      });
+      
+      // 2. 用 JavaScript 在本地端將最新照片排在最前面
+      fetchedPhotos.sort((a, b) => b.time - a.time);
+      
+      // 3. 更新畫面
+      setPhotos(fetchedPhotos.map(p => p.imageUrl));
       setLoading(false);
+    }, (error) => {
+      console.error("Gallery Error:", error);
+      setLoading(false); // 就算報錯也解除 loading 狀態
     });
+
     return () => unsubscribe();
   }, []);
 
