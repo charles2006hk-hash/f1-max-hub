@@ -2,8 +2,8 @@
 
 import { useState, useEffect } from "react";
 import { db } from "@/lib/firebase";
-import { doc, getDoc, setDoc } from "firebase/firestore";
-import { Save, LayoutDashboard, Lock, ArrowLeft, Wand2, Loader2, Database } from "lucide-react";
+import { doc, getDoc, setDoc, collection, query, orderBy, onSnapshot, updateDoc, deleteDoc } from "firebase/firestore";
+import { Save, LayoutDashboard, Lock, ArrowLeft, Wand2, Loader2, Database, Camera, Trash2 } from "lucide-react";
 
 export default function AdminPage() {
   const [isAuth, setIsAuth] = useState(false);
@@ -11,10 +11,13 @@ export default function AdminPage() {
   const [aiLoading, setAiLoading] = useState(false);
   const [f1Loading, setF1Loading] = useState(false);
   
+  // 🔥 儲存從 Firebase 抓取出來的 Vault 待審核照片
+  const [vaultPhotos, setVaultPhotos] = useState<any[]>([]);
+  
   const [formData, setFormData] = useState({
     newsHeadline: "", newsContent: "", newsVideoPrompt: "", newsVideoUrl: "",
     techHeadline: "", techContent: "", techVideoPrompt: "", techVideoUrl: "",
-    standingsData: "", racesData: "" // 🔥 新增這兩個欄位儲存 JSON 字串
+    standingsData: "", racesData: "" 
   });
 
   const login = () => {
@@ -24,6 +27,8 @@ export default function AdminPage() {
 
   useEffect(() => {
     if (!isAuth) return;
+    
+    // 讀取首頁設定
     const fetchData = async () => {
       const docSnap = await getDoc(doc(db, "settings", "home_config"));
       if (docSnap.exists()) {
@@ -32,12 +37,19 @@ export default function AdminPage() {
       }
     };
     fetchData();
+
+    // 🔥 監聽 max_gallery 獲取粉絲投稿的照片
+    const q = query(collection(db, "max_gallery"), orderBy("createdAt", "desc"));
+    const unsubscribe = onSnapshot(q, (snap) => {
+      setVaultPhotos(snap.docs.map(d => ({ id: d.id, ...d.data() })));
+    });
+
+    return () => unsubscribe();
   }, [isAuth]);
 
   const handleSave = async () => {
     setLoading(true);
     try {
-      // 驗證 JSON 格式是否正確
       if (formData.standingsData) JSON.parse(formData.standingsData);
       if (formData.racesData) JSON.parse(formData.racesData);
       
@@ -63,7 +75,6 @@ export default function AdminPage() {
     setAiLoading(false);
   };
 
-  // 🔥 呼叫 AI 抓取最新 F1 數據
   const generateF1Data = async () => {
     setF1Loading(true);
     try {
@@ -77,6 +88,17 @@ export default function AdminPage() {
       alert("✨ AI 已經獲取最新 F1 數據！請在下方文字框確認分數是否正確，你可以手動修改數字，確認無誤後按下發佈！");
     } catch (error) { alert("AI 數據抓取失敗"); }
     setF1Loading(false);
+  };
+
+  // 🔥 更新與刪除照片的邏輯
+  const updatePhotoStatus = async (id: string, status: string) => {
+    await updateDoc(doc(db, "max_gallery", id), { status });
+  };
+  
+  const deletePhoto = async (id: string) => {
+    if (confirm("確定要永久刪除這張照片嗎？")) {
+      await deleteDoc(doc(db, "max_gallery", id));
+    }
   };
 
   if (!isAuth) return (
@@ -109,10 +131,9 @@ export default function AdminPage() {
             </div>
           </div>
 
-          {/* 🔥 區塊 2：Live Data Center 控制 */}
+          {/* 區塊 2：Live Data Center 控制 */}
           <div className="border border-slate-800 rounded-xl p-6 bg-slate-950 space-y-6">
             <h2 className="text-xl font-bold flex items-center gap-2 text-red-500"><Database size={24}/> 2. Live Data Center (Standings & Races)</h2>
-            {/* 將原本的文字改為更專業的描述 */}
             <button onClick={generateF1Data} disabled={f1Loading} className="w-full bg-red-600/20 text-red-500 border border-red-600/50 py-3 rounded-lg font-bold flex justify-center items-center gap-2 hover:bg-red-600/40 transition">
               {f1Loading ? <Loader2 className="animate-spin" size={20} /> : <><Database size={20}/> 從 F1 官網同步 2026 最新數據</>}
             </button>
@@ -129,8 +150,38 @@ export default function AdminPage() {
             </div>
           </div>
 
+          {/* 🔥 全新區塊 3：The Vault Curation (相片審查) */}
+          <div className="border border-slate-800 rounded-xl p-6 bg-slate-950 space-y-6">
+            <h2 className="text-xl font-bold flex items-center gap-2 text-orange-500"><Camera size={24}/> 3. The Vault Curation (粉絲相片審查)</h2>
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 max-h-96 overflow-y-auto custom-scrollbar p-2">
+              {vaultPhotos.length === 0 ? (
+                <p className="text-slate-500 col-span-full text-center py-10">尚無粉絲投稿照片</p>
+              ) : vaultPhotos.map(photo => (
+                <div key={photo.id} className={`relative group rounded-lg overflow-hidden border-2 ${photo.status === 'approved' ? 'border-green-500' : 'border-yellow-500/50'}`}>
+                  <img src={photo.imageUrl} alt="vault" className="w-full h-32 object-cover bg-black" />
+                  <div className="absolute top-0 left-0 bg-black/70 text-[10px] px-2 py-1 text-white">{photo.submittedBy}</div>
+                  
+                  {/* 狀態標籤 */}
+                  <div className="absolute top-0 right-0 bg-black/70 text-[10px] px-2 py-1 font-bold">
+                    {photo.status === 'approved' ? <span className="text-green-400">Approved</span> : <span className="text-yellow-400">Pending</span>}
+                  </div>
+
+                  {/* 操作按鈕 */}
+                  <div className="absolute bottom-0 left-0 right-0 bg-black/80 p-2 flex justify-between gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                    {photo.status === 'pending' ? (
+                      <button onClick={() => updatePhotoStatus(photo.id, 'approved')} className="flex-1 bg-green-600 hover:bg-green-500 text-white text-xs py-1 rounded">Approve</button>
+                    ) : (
+                      <button onClick={() => updatePhotoStatus(photo.id, 'pending')} className="flex-1 bg-slate-600 hover:bg-slate-500 text-white text-xs py-1 rounded">Hide</button>
+                    )}
+                    <button onClick={() => deletePhoto(photo.id)} className="bg-red-600 hover:bg-red-500 text-white px-2 rounded"><Trash2 size={12}/></button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+
           <button onClick={handleSave} disabled={loading} className="bg-gradient-to-r from-green-600 to-emerald-600 w-full py-4 rounded-xl font-bold flex justify-center items-center gap-2 hover:opacity-90 transition text-lg shadow-lg">
-            {loading ? "Saving..." : <><Save size={24} /> 步驟 3：強制更新並發佈到首頁 (Publish)</>}
+            {loading ? "Saving..." : <><Save size={24} /> 步驟 4：強制更新並發佈到首頁 (Publish)</>}
           </button>
         </div>
       </div>
