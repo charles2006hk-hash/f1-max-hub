@@ -8,19 +8,12 @@ export default function HeroBanner() {
   const [isLoaded, setIsLoaded] = useState(false);
 
   useEffect(() => {
-    // 檢查是否來過
-    const visited = localStorage.getItem("max33_visited");
-    if (visited) {
-      setIsMinimized(true);
-    } else {
-      localStorage.setItem("max33_visited", "true");
-      // 🔥 新增：第一次來的訪客，看 4 秒鐘大圖後自動縮小
-      const timer = setTimeout(() => {
-        setIsMinimized(true);
-      }, 4000);
-      return () => clearTimeout(timer); // 清除計時器避免內存洩漏
-    }
     setIsLoaded(true);
+    // 每次載入網頁，4秒後自動縮小
+    const timer = setTimeout(() => {
+      setIsMinimized(true);
+    }, 4000);
+    return () => clearTimeout(timer); // 清理計時器
   }, []);
 
   if (!isLoaded) return null;
