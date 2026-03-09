@@ -1,70 +1,53 @@
-import { Trophy, Zap, MessageSquare, Calendar, Flag, Radio, Star, Home as HomeIcon, TrendingUp } from 'lucide-react';
-import { GoogleGenAI } from '@google/genai';
+import { Trophy, Zap, MessageSquare, Flag, Radio, Star, Home as HomeIcon, TrendingUp } from 'lucide-react';
 import CommentBoard from '@/components/CommentBoard';
 import VoiceOfDay from '@/components/VoiceOfDay';
 import HeroBanner from '@/components/HeroBanner';
 import { db } from "@/lib/firebase";
 import { doc, getDoc } from "firebase/firestore";
 
-// 🔥 設定每小時 (3600秒) 自動更新一次，完美符合你賽事期間每小時更新的需求！
-export const revalidate = 3600;
-
-// 🧠 AI 自動賽事數據引擎：不再依賴慢吞吞的 API，直接讓 AI 結算最新成績！
-async function getAiF1Data() {
-  try {
-    const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
-    const prompt = `
-      You are a professional F1 data provider. Today is March 2026. The 2026 F1 season has started (The Australian GP just finished).
-      Please generate the highly realistic and up-to-date 2026 Driver Standings (Top 8) and the Next 5 Upcoming Races.
-      OUTPUT STRICTLY IN JSON FORMAT ONLY (no markdown blocks, no text):
-      {
-        "standings": [
-          { "pos": 1, "driver": "VER", "team": "Red Bull", "pts": 26, "trend": "up" },
-          { "pos": 2, "driver": "LEC", "team": "Ferrari", "pts": 18, "trend": "same" }
-        ],
-        "races": [
-          { "date": "MAR 22", "name": "Saudi Arabian GP", "status": "UPCOMING" }
-        ]
-      }
-    `;
-    
-    const response = await ai.models.generateContent({ model: 'gemini-2.5-flash', contents: prompt });
-    let text = (response.text || '').replace(/```json/g, '').replace(/```/g, '').trim();
-    return JSON.parse(text);
-  } catch (error) {
-    console.warn("AI Data Engine failed, using fallback.");
-    // 防呆備用數據
-    return {
-      standings: [
-        { pos: 1, "driver": "VER", "team": "Red Bull", "pts": 26, "trend": "up" },
-        { pos: 2, "driver": "LEC", "team": "Ferrari", "pts": 18, "trend": "same" },
-        { pos: 3, "driver": "NOR", "team": "McLaren", "pts": 15, "trend": "down" },
-        { pos: 4, "driver": "SAI", "team": "Williams", "pts": 12, "trend": "up" }
-      ],
-      races: [
-        { date: "MAR 22", name: "Saudi Arabian GP", status: "UPCOMING" },
-        { date: "APR 05", name: "Japanese GP", status: "UPCOMING" },
-        { date: "APR 19", name: "Chinese GP", status: "UPCOMING" }
-      ]
-    };
-  }
-}
+// 🔥 關鍵修正 1：設定為 0，確保你後台一按發佈，首頁立刻秒更新！
+export const revalidate = 0;
 
 async function getCmsData() {
   try {
     const docSnap = await getDoc(doc(db, "settings", "home_config"));
     if (docSnap.exists()) return docSnap.data();
   } catch (e) {}
-  return { newsHeadline: "Awaiting Live Signal...", newsContent: "Connecting to the paddock...", techHeadline: "Awaiting Live Signal...", techContent: "Connecting..." };
+  return { 
+    newsHeadline: "Awaiting Live Signal...", newsContent: "Connecting to the paddock...", 
+    techHeadline: "Awaiting Live Signal...", techContent: "Connecting...",
+    standingsData: "[]", racesData: "[]"
+  };
 }
 
 export default async function Home() {
   const cmsData = await getCmsData();
-  const aiData = await getAiF1Data(); // 呼叫 AI 獲取最新動態數據
+  
+  // 🔥 關鍵修正 2：安全地解析你從後台傳過來的 JSON 數據
+  let standings = [];
+  let races = [];
+  try {
+    standings = JSON.parse(cmsData.standingsData || "[]");
+    races = JSON.parse(cmsData.racesData || "[]");
+    
+    // 防呆機制：如果你後台還沒存過資料，先給一組預設展示資料
+    if (standings.length === 0) {
+      standings = [
+        { pos: 1, driver: "VER", team: "Red Bull", pts: 26, trend: "up" },
+        { pos: 2, "driver": "LEC", "team": "Ferrari", "pts": 18, "trend": "same" }
+      ];
+      races = [
+        { date: "MAR 22", name: "Saudi Arabian GP", status: "UPCOMING" }
+      ];
+    }
+  } catch (e) {
+    console.error("Failed to parse F1 data JSON from CMS");
+  }
 
   return (
     <main className="min-h-screen bg-slate-950 text-gray-200 selection:bg-red-600 selection:text-white pb-24 md:pb-20 scroll-smooth font-sans">
       
+      {/* 導航列 */}
       <nav className="border-b border-blue-900/50 bg-blue-950/90 backdrop-blur-md sticky top-0 z-40">
         <div className="container mx-auto px-4 md:px-6 py-3 md:py-4 flex justify-between items-center max-w-7xl">
           <div className="flex items-center gap-3">
@@ -82,7 +65,7 @@ export default async function Home() {
       <div className="container mx-auto px-4 md:px-6 py-6 md:py-8 max-w-7xl space-y-8 md:space-y-12">
         <HeroBanner />
 
-        {/* 🔥 完美回歸：Max's Legacy 探索卡片 */}
+        {/* Max's Legacy 探索卡片 */}
         <section className="bg-gradient-to-br from-slate-900 to-slate-950 p-5 md:p-8 rounded-2xl border border-slate-800 flex flex-col md:flex-row items-start md:items-center gap-4 md:gap-6 shadow-xl hover:border-yellow-600/50 transition">
           <div className="flex items-center gap-4 w-full md:w-auto">
             <div className="p-3 rounded-full bg-yellow-400/10 border-2 border-yellow-400/20 shrink-0"><Star size={24} className="text-yellow-400"/></div>
@@ -104,7 +87,6 @@ export default async function Home() {
                   {cmsData.newsVideoUrl ? (
                     <video src={cmsData.newsVideoUrl} autoPlay loop muted playsInline className="w-full h-full object-cover"></video>
                   ) : (<span className="text-slate-600 text-sm">Signal Lost</span>)}
-                  {/* AI Prompt 疊加層 */}
                   <div className="absolute bottom-3 left-3 z-20 bg-black/60 backdrop-blur-md px-2 py-1.5 rounded-lg border border-slate-700/50 max-w-[85%]">
                     <p className="text-[9px] text-red-500 font-bold uppercase mb-0.5">AI Video Synth</p>
                     <p className="text-[10px] text-gray-300 font-mono truncate">Prompt: {cmsData.newsVideoPrompt}</p>
@@ -142,24 +124,24 @@ export default async function Home() {
           <div className="lg:col-span-1 space-y-8 md:space-y-10">
             <section><VoiceOfDay /></section>
             
-            {/* 🔥 AI 自動更新：動態滾動的 LIVE Data Center */}
+            {/* 🔥 資訊屏現在完全吃後台的 standings 和 races 變數！ */}
             <section id="standings" className="bg-slate-900 border border-slate-800 rounded-2xl overflow-hidden shadow-2xl shadow-blue-900/10 flex flex-col h-[500px]">
               <div className="p-4 md:p-5 border-b border-slate-800 bg-slate-950 flex justify-between items-center z-10 relative shadow-md">
                 <h3 className="font-black text-white flex items-center gap-2 uppercase tracking-widest text-sm md:text-base">
                   <TrendingUp size={18} className="text-red-500 animate-pulse"/> Live Data Center
                 </h3>
                 <span className="text-[10px] bg-red-600/20 text-red-500 px-2 py-1 rounded border border-red-600/50 font-mono flex items-center gap-1">
-                  <span className="w-1.5 h-1.5 bg-red-500 rounded-full animate-pulse"></span> AI SYNC
+                  <span className="w-1.5 h-1.5 bg-red-500 rounded-full animate-pulse"></span> SYSTEM OK
                 </span>
               </div>
               
               <div className="flex-1 overflow-hidden relative bg-slate-950/50 group">
                 <div className="absolute w-full animate-marquee hover:[animation-play-state:paused] flex flex-col">
                   
-                  {/* 第一塊：AI 產生的即時積分榜 */}
+                  {/* 第一塊：從 Firebase 讀取的積分榜 */}
                   <div className="p-4 space-y-2 mb-8">
                     <div className="text-xs text-slate-500 font-bold uppercase tracking-widest mb-3 border-b border-slate-800 pb-2">Driver Standings</div>
-                    {aiData.standings.map((driver: any, i: number) => (
+                    {standings.map((driver: any, i: number) => (
                       <div key={i} className="flex justify-between items-center bg-slate-900/80 p-3 rounded-lg border border-slate-800 hover:border-blue-500/50 transition">
                         <div className="flex items-center gap-3">
                           <span className={`font-black w-5 text-center ${i === 0 ? 'text-yellow-400' : 'text-slate-500'}`}>{driver.pos}</span>
@@ -173,10 +155,10 @@ export default async function Home() {
                     ))}
                   </div>
 
-                  {/* 第二塊：AI 產生的賽程表 */}
+                  {/* 第二塊：從 Firebase 讀取的賽程表 */}
                   <div className="p-4 space-y-2 mb-8 border-t border-slate-800/50 pt-6">
                     <div className="text-xs text-slate-500 font-bold uppercase tracking-widest mb-3 border-b border-slate-800 pb-2">Race Calendar</div>
-                    {aiData.races.map((race: any, i: number) => (
+                    {races.map((race: any, i: number) => (
                       <div key={i} className="flex justify-between items-center p-3 border-l-2 border-slate-800 pl-4 relative">
                         <div className={`absolute -left-[5px] w-2 h-2 rounded-full ${race.status.includes('WON') ? 'bg-yellow-400 shadow-[0_0_10px_#facc15]' : 'bg-slate-700'}`}></div>
                         <div>
@@ -190,13 +172,11 @@ export default async function Home() {
                     ))}
                   </div>
                   
-                  {/* 重複區塊實現無縫滾動 */}
                   <div className="p-4 space-y-2 border-t border-slate-800/50 pt-6">
                      <div className="text-xs text-slate-500 font-bold uppercase tracking-widest mb-3 text-center">-- END OF SYNC --</div>
                   </div>
 
                 </div>
-                {/* 上下漸層遮罩 */}
                 <div className="absolute top-0 left-0 w-full h-10 bg-gradient-to-b from-slate-900 to-transparent z-10 pointer-events-none"></div>
                 <div className="absolute bottom-0 left-0 w-full h-10 bg-gradient-to-t from-slate-900 to-transparent z-10 pointer-events-none"></div>
               </div>
