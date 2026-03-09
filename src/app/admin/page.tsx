@@ -3,15 +3,18 @@
 import { useState, useEffect } from "react";
 import { db } from "@/lib/firebase";
 import { doc, getDoc, setDoc } from "firebase/firestore";
-import { Save, LayoutDashboard, Lock, ArrowLeft, Wand2, Loader2 } from "lucide-react";
+import { Save, LayoutDashboard, Lock, ArrowLeft, Wand2, Loader2, Database } from "lucide-react";
 
 export default function AdminPage() {
   const [isAuth, setIsAuth] = useState(false);
   const [loading, setLoading] = useState(false);
   const [aiLoading, setAiLoading] = useState(false);
+  const [f1Loading, setF1Loading] = useState(false);
+  
   const [formData, setFormData] = useState({
     newsHeadline: "", newsContent: "", newsVideoPrompt: "", newsVideoUrl: "",
-    techHeadline: "", techContent: "", techVideoPrompt: "", techVideoUrl: ""
+    techHeadline: "", techContent: "", techVideoPrompt: "", techVideoUrl: "",
+    standingsData: "", racesData: "" // 🔥 新增這兩個欄位儲存 JSON 字串
   });
 
   const login = () => {
@@ -23,7 +26,10 @@ export default function AdminPage() {
     if (!isAuth) return;
     const fetchData = async () => {
       const docSnap = await getDoc(doc(db, "settings", "home_config"));
-      if (docSnap.exists()) setFormData(prev => ({ ...prev, ...docSnap.data() }));
+      if (docSnap.exists()) {
+        const data = docSnap.data();
+        setFormData(prev => ({ ...prev, ...data }));
+      }
     };
     fetchData();
   }, [isAuth]);
@@ -31,13 +37,18 @@ export default function AdminPage() {
   const handleSave = async () => {
     setLoading(true);
     try {
+      // 驗證 JSON 格式是否正確
+      if (formData.standingsData) JSON.parse(formData.standingsData);
+      if (formData.racesData) JSON.parse(formData.racesData);
+      
       await setDoc(doc(db, "settings", "home_config"), formData);
-      alert("✅ 網站內容已成功發佈！去首頁看看吧！");
-    } catch (error) { alert("更新失敗，請檢查 Firebase 權限。"); }
+      alert("✅ 網站內容與即時數據已成功發佈！去首頁看看吧！");
+    } catch (error) { 
+      alert("⚠️ 發佈失敗！請檢查你手動修改的 JSON 格式是否缺少了引號或括號。"); 
+    }
     setLoading(false);
   };
 
-  // 🔥 呼叫 AI 幫你寫稿與產生影片 Prompt
   const generateAIContent = async () => {
     setAiLoading(true);
     try {
@@ -48,9 +59,24 @@ export default function AdminPage() {
         newsHeadline: data.news.headline, newsContent: data.news.content, newsVideoPrompt: data.news.videoPrompt,
         techHeadline: data.tech.headline, techContent: data.tech.content, techVideoPrompt: data.tech.videoPrompt
       }));
-      alert("✨ AI 已經幫你寫好文案與導演腳本了！請複製 Prompt 去生成影片，然後貼回 Video URL 欄位！");
-    } catch (error) { alert("AI 生成失敗"); }
+    } catch (error) { alert("AI 新聞生成失敗"); }
     setAiLoading(false);
+  };
+
+  // 🔥 呼叫 AI 抓取最新 F1 數據
+  const generateF1Data = async () => {
+    setF1Loading(true);
+    try {
+      const res = await fetch('/api/ai-f1', { method: 'POST' });
+      const data = await res.json();
+      setFormData(prev => ({
+        ...prev,
+        standingsData: JSON.stringify(data.standings, null, 2),
+        racesData: JSON.stringify(data.races, null, 2)
+      }));
+      alert("✨ AI 已經獲取最新 F1 數據！請在下方文字框確認分數是否正確，你可以手動修改數字，確認無誤後按下發佈！");
+    } catch (error) { alert("AI 數據抓取失敗"); }
+    setF1Loading(false);
   };
 
   if (!isAuth) return (
@@ -58,48 +84,52 @@ export default function AdminPage() {
   );
 
   return (
-    <div className="min-h-screen bg-slate-950 text-white p-6 md:p-10 font-sans">
+    <div className="min-h-screen bg-slate-950 text-white p-6 md:p-10 font-sans pb-32">
       <div className="max-w-4xl mx-auto space-y-8">
         <div className="flex justify-between items-center border-b border-slate-800 pb-5">
-          <div className="flex items-center gap-3"><LayoutDashboard className="text-blue-500" size={32} /><h1 className="text-3xl font-bold">AI Newsroom Control</h1></div>
+          <div className="flex items-center gap-3"><LayoutDashboard className="text-blue-500" size={32} /><h1 className="text-3xl font-bold">Admin Control Center</h1></div>
           <a href="/" className="text-slate-400 hover:text-white flex items-center gap-1"><ArrowLeft size={16}/> Back to Site</a>
         </div>
 
         <div className="bg-slate-900 p-8 rounded-2xl border border-slate-800 space-y-8">
           
-          <button onClick={generateAIContent} disabled={aiLoading} className="w-full bg-gradient-to-r from-purple-600 to-blue-600 py-4 rounded-xl font-bold flex justify-center items-center gap-2 hover:opacity-90 transition">
-            {aiLoading ? <Loader2 className="animate-spin" size={20} /> : <Wand2 size={20} />} 
-            {aiLoading ? "AI 正在撰寫今日新聞與腳本..." : "🤖 步驟 1：請 AI 自動生成今日新聞與影片 Prompt"}
-          </button>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-            {/* 新聞區塊設定 */}
-            <div className="space-y-4 p-5 bg-slate-950 rounded-xl border border-slate-800">
-              <h3 className="font-bold text-red-500 border-b border-slate-800 pb-2">📰 Daily News Section</h3>
-              <input type="text" placeholder="Headline" className="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-sm" value={formData.newsHeadline} onChange={e => setFormData({...formData, newsHeadline: e.target.value})} />
-              <textarea placeholder="Content" className="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-sm h-20" value={formData.newsContent} onChange={e => setFormData({...formData, newsContent: e.target.value})} />
-              <div className="bg-purple-900/20 p-3 rounded-lg border border-purple-500/30">
-                <label className="text-xs text-purple-400 font-bold mb-1 block">🎥 AI Video Prompt (複製去算圖)</label>
-                <textarea className="w-full bg-transparent text-purple-200 text-xs h-16 outline-none resize-none" readOnly value={formData.newsVideoPrompt} />
-              </div>
-              <input type="text" placeholder="貼上算好的 .mp4 影片網址" className="w-full bg-slate-900 border border-blue-500 rounded-lg px-3 py-2 text-sm" value={formData.newsVideoUrl} onChange={e => setFormData({...formData, newsVideoUrl: e.target.value})} />
-            </div>
-
-            {/* 技術區塊設定 */}
-            <div className="space-y-4 p-5 bg-slate-950 rounded-xl border border-slate-800">
-              <h3 className="font-bold text-yellow-500 border-b border-slate-800 pb-2">⚙️ Tech Analysis Section</h3>
-              <input type="text" placeholder="Headline" className="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-sm" value={formData.techHeadline} onChange={e => setFormData({...formData, techHeadline: e.target.value})} />
-              <textarea placeholder="Content" className="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-sm h-20" value={formData.techContent} onChange={e => setFormData({...formData, techContent: e.target.value})} />
-              <div className="bg-purple-900/20 p-3 rounded-lg border border-purple-500/30">
-                <label className="text-xs text-purple-400 font-bold mb-1 block">🎥 AI Video Prompt (複製去算圖)</label>
-                <textarea className="w-full bg-transparent text-purple-200 text-xs h-16 outline-none resize-none" readOnly value={formData.techVideoPrompt} />
-              </div>
-              <input type="text" placeholder="貼上算好的 .mp4 影片網址" className="w-full bg-slate-900 border border-blue-500 rounded-lg px-3 py-2 text-sm" value={formData.techVideoUrl} onChange={e => setFormData({...formData, techVideoUrl: e.target.value})} />
+          {/* 區塊 1：新聞與影片 */}
+          <div className="border border-slate-800 rounded-xl p-6 bg-slate-950 space-y-6">
+            <h2 className="text-xl font-bold flex items-center gap-2 text-blue-400"><Wand2 size={24}/> 1. News & Tech Broadcast</h2>
+            <button onClick={generateAIContent} disabled={aiLoading} className="w-full bg-blue-600/20 text-blue-400 border border-blue-600/50 py-3 rounded-lg font-bold flex justify-center items-center gap-2 hover:bg-blue-600/40 transition">
+              {aiLoading ? <Loader2 className="animate-spin" size={20} /> : "🤖 請 AI 寫今日新聞與腳本"}
+            </button>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div className="space-y-3"><label className="text-xs text-slate-500 font-bold">News Headline</label><input type="text" className="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-sm" value={formData.newsHeadline} onChange={e => setFormData({...formData, newsHeadline: e.target.value})} /></div>
+              <div className="space-y-3"><label className="text-xs text-slate-500 font-bold">Tech Headline</label><input type="text" className="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-sm" value={formData.techHeadline} onChange={e => setFormData({...formData, techHeadline: e.target.value})} /></div>
+              <div className="space-y-3"><label className="text-xs text-slate-500 font-bold">News Content</label><textarea className="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-sm h-20" value={formData.newsContent} onChange={e => setFormData({...formData, newsContent: e.target.value})} /></div>
+              <div className="space-y-3"><label className="text-xs text-slate-500 font-bold">Tech Content</label><textarea className="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-sm h-20" value={formData.techContent} onChange={e => setFormData({...formData, techContent: e.target.value})} /></div>
+              <div className="space-y-3"><label className="text-xs text-slate-500 font-bold">News Video URL</label><input type="text" className="w-full bg-slate-900 border border-blue-500 rounded-lg px-3 py-2 text-sm" value={formData.newsVideoUrl} onChange={e => setFormData({...formData, newsVideoUrl: e.target.value})} /></div>
+              <div className="space-y-3"><label className="text-xs text-slate-500 font-bold">Tech Video URL</label><input type="text" className="w-full bg-slate-900 border border-blue-500 rounded-lg px-3 py-2 text-sm" value={formData.techVideoUrl} onChange={e => setFormData({...formData, techVideoUrl: e.target.value})} /></div>
             </div>
           </div>
 
-          <button onClick={handleSave} disabled={loading} className="bg-blue-600 w-full py-4 rounded-xl font-bold flex justify-center items-center gap-2 hover:bg-blue-500 transition">
-            {loading ? "Saving..." : <><Save size={20} /> 步驟 2：發佈到公開網站 (Publish)</>}
+          {/* 🔥 區塊 2：Live Data Center 控制 */}
+          <div className="border border-slate-800 rounded-xl p-6 bg-slate-950 space-y-6">
+            <h2 className="text-xl font-bold flex items-center gap-2 text-red-500"><Database size={24}/> 2. Live Data Center (Standings & Races)</h2>
+            <button onClick={generateF1Data} disabled={f1Loading} className="w-full bg-red-600/20 text-red-500 border border-red-600/50 py-3 rounded-lg font-bold flex justify-center items-center gap-2 hover:bg-red-600/40 transition">
+              {f1Loading ? <Loader2 className="animate-spin" size={20} /> : "📊 請 AI 抓取最新 F1 賽事資料"}
+            </button>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div className="space-y-3">
+                <label className="text-xs text-slate-500 font-bold">Driver Standings (JSON)</label>
+                <textarea className="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-xs h-48 font-mono text-green-400" value={formData.standingsData} onChange={e => setFormData({...formData, standingsData: e.target.value})} placeholder='[ { "pos": 1, "driver": "VER", "team": "Red Bull", "pts": 26, "trend": "up" } ]' />
+                <p className="text-[10px] text-slate-500">你可以手動修改 pts 分數，修改完按發佈即刻生效。</p>
+              </div>
+              <div className="space-y-3">
+                <label className="text-xs text-slate-500 font-bold">Upcoming Races (JSON)</label>
+                <textarea className="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-xs h-48 font-mono text-green-400" value={formData.racesData} onChange={e => setFormData({...formData, racesData: e.target.value})} placeholder='[ { "date": "MAR 22", "name": "Saudi Arabian GP", "status": "UPCOMING" } ]' />
+              </div>
+            </div>
+          </div>
+
+          <button onClick={handleSave} disabled={loading} className="bg-gradient-to-r from-green-600 to-emerald-600 w-full py-4 rounded-xl font-bold flex justify-center items-center gap-2 hover:opacity-90 transition text-lg shadow-lg">
+            {loading ? "Saving..." : <><Save size={24} /> 步驟 3：強制更新並發佈到首頁 (Publish)</>}
           </button>
         </div>
       </div>
