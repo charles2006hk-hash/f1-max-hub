@@ -195,8 +195,14 @@ export default function AdminPage() {
                 <textarea className="w-full bg-slate-900 border border-yellow-700/50 rounded-lg px-3 py-2 text-xs h-20 text-yellow-400 font-mono custom-scrollbar" value={formData.techVideoPrompt} onChange={e => setFormData({...formData, techVideoPrompt: e.target.value})} />
               </div>
 
-              <div className="space-y-3"><label className="text-xs text-slate-500 font-bold">News Video URL (貼上你做好的影片網址)</label><input type="text" className="w-full bg-slate-900 border border-blue-500 rounded-lg px-3 py-2 text-sm" value={formData.newsVideoUrl} onChange={e => setFormData({...formData, newsVideoUrl: e.target.value})} /></div>
-              <div className="space-y-3"><label className="text-xs text-slate-500 font-bold">Tech Video URL (貼上你做好的影片網址)</label><input type="text" className="w-full bg-slate-900 border border-blue-500 rounded-lg px-3 py-2 text-sm" value={formData.techVideoUrl} onChange={e => setFormData({...formData, techVideoUrl: e.target.value})} /></div>
+              <div className="space-y-3">
+                <label className="text-xs text-blue-400 font-bold flex items-center gap-1">📺 News Video URLs (影片連播清單)</label>
+                <textarea className="w-full bg-slate-900 border border-blue-500/50 rounded-lg px-3 py-2 text-xs h-20 text-blue-300 font-mono custom-scrollbar placeholder-slate-600" value={formData.newsVideoUrl} onChange={e => setFormData({...formData, newsVideoUrl: e.target.value})} placeholder="貼上影片網址（若有多部影片，請按 Enter 換行，系統將自動連播）" />
+              </div>
+              <div className="space-y-3">
+                <label className="text-xs text-blue-400 font-bold flex items-center gap-1">📺 Tech Video URLs (影片連播清單)</label>
+                <textarea className="w-full bg-slate-900 border border-blue-500/50 rounded-lg px-3 py-2 text-xs h-20 text-blue-300 font-mono custom-scrollbar placeholder-slate-600" value={formData.techVideoUrl} onChange={e => setFormData({...formData, techVideoUrl: e.target.value})} placeholder="貼上影片網址（若有多部影片，請按 Enter 換行，系統將自動連播）" />
+              </div>
             </div>
           </div>
 
