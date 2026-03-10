@@ -36,7 +36,7 @@ export default function AdminPage() {
     };
     fetchData();
 
-    // 監聽 Vault 相簿 (使用 JS 排序避開 Firebase 複合索引錯誤)
+    // 監聽 Vault 相簿
     const q = query(collection(db, "max_gallery"));
     const unsubscribe = onSnapshot(q, (snap) => {
       const photos = snap.docs.map(d => ({
@@ -51,7 +51,7 @@ export default function AdminPage() {
     return () => unsubscribe();
   }, [isAuth]);
 
-  // 發佈到首頁
+  // 儲存發佈到首頁
   const handleSave = async () => {
     setLoading(true);
     try {
@@ -63,35 +63,26 @@ export default function AdminPage() {
     setLoading(false);
   };
 
-  {/* 🔥 區塊 1：完全恢復的 News & Tech Broadcast */}
-          <div className="border border-slate-800 rounded-xl p-6 bg-slate-950 space-y-6">
-            <h2 className="text-xl font-bold flex items-center gap-2 text-blue-400"><Wand2 size={24}/> 1. News & Tech Broadcast</h2>
-            <button onClick={generateAIContent} disabled={aiLoading} className="w-full bg-blue-600/20 text-blue-400 border border-blue-600/50 py-3 rounded-lg font-bold flex justify-center items-center gap-2 hover:bg-blue-600/40 transition">
-              {aiLoading ? <Loader2 className="animate-spin" size={20} /> : "🤖 請 AI 寫今日新聞與腳本"}
-            </button>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div className="space-y-3"><label className="text-xs text-slate-500 font-bold">News Headline</label><input type="text" className="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-sm" value={formData.newsHeadline} onChange={e => setFormData({...formData, newsHeadline: e.target.value})} /></div>
-              <div className="space-y-3"><label className="text-xs text-slate-500 font-bold">Tech Headline</label><input type="text" className="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-sm" value={formData.techHeadline} onChange={e => setFormData({...formData, techHeadline: e.target.value})} /></div>
-              
-              <div className="space-y-3"><label className="text-xs text-slate-500 font-bold">News Content (播報稿)</label><textarea className="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-sm h-24 custom-scrollbar" value={formData.newsContent} onChange={e => setFormData({...formData, newsContent: e.target.value})} /></div>
-              <div className="space-y-3"><label className="text-xs text-slate-500 font-bold">Tech Content (科技分析)</label><textarea className="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-sm h-24 custom-scrollbar" value={formData.techContent} onChange={e => setFormData({...formData, techContent: e.target.value})} /></div>
-              
-              {/* 🔥 新增：這兩個是讓你複製去生成影片的 Prompt 欄位 */}
-              <div className="space-y-3">
-                <label className="text-xs text-yellow-500 font-bold flex items-center gap-1">✨ News Video Prompt (複製去生成影片)</label>
-                <textarea className="w-full bg-slate-900 border border-yellow-700/50 rounded-lg px-3 py-2 text-xs h-20 text-yellow-400 font-mono custom-scrollbar" value={formData.newsVideoPrompt} onChange={e => setFormData({...formData, newsVideoPrompt: e.target.value})} />
-              </div>
-              <div className="space-y-3">
-                <label className="text-xs text-yellow-500 font-bold flex items-center gap-1">✨ Tech Video Prompt (複製去生成影片)</label>
-                <textarea className="w-full bg-slate-900 border border-yellow-700/50 rounded-lg px-3 py-2 text-xs h-20 text-yellow-400 font-mono custom-scrollbar" value={formData.techVideoPrompt} onChange={e => setFormData({...formData, techVideoPrompt: e.target.value})} />
-              </div>
+  // 🔥 就是這個函數剛剛不小心被刪掉了！現在補回來了！
+  const generateAIContent = async () => {
+    setAiLoading(true);
+    try {
+      const res = await fetch('/api/ai', { method: 'POST' });
+      const data = await res.json();
+      setFormData(prev => ({
+        ...prev,
+        newsHeadline: data.news.headline, 
+        newsContent: data.news.content, 
+        newsVideoPrompt: data.news.videoPrompt,
+        techHeadline: data.tech.headline, 
+        techContent: data.tech.content, 
+        techVideoPrompt: data.tech.videoPrompt
+      }));
+    } catch (error) { alert("AI 新聞生成失敗"); }
+    setAiLoading(false);
+  };
 
-              <div className="space-y-3"><label className="text-xs text-slate-500 font-bold">News Video URL (貼上你做好的影片網址)</label><input type="text" className="w-full bg-slate-900 border border-blue-500 rounded-lg px-3 py-2 text-sm" value={formData.newsVideoUrl} onChange={e => setFormData({...formData, newsVideoUrl: e.target.value})} /></div>
-              <div className="space-y-3"><label className="text-xs text-slate-500 font-bold">Tech Video URL (貼上你做好的影片網址)</label><input type="text" className="w-full bg-slate-900 border border-blue-500 rounded-lg px-3 py-2 text-sm" value={formData.techVideoUrl} onChange={e => setFormData({...formData, techVideoUrl: e.target.value})} /></div>
-            </div>
-          </div>
-
-  // 區塊2：呼叫 AI 抓取 F1 最新賽果
+  // 呼叫 AI 抓取 F1 最新賽果
   const generateF1Data = async () => {
     setF1Loading(true);
     try {
@@ -115,7 +106,7 @@ export default function AdminPage() {
     if (confirm("確定要永久刪除這張照片嗎？")) await deleteDoc(doc(db, "max_gallery", id));
   };
 
-  // 🔥 智慧壓縮引擎：保證圖檔 < 150KB
+  // 智慧壓縮引擎：保證圖檔 < 150KB
   const compressImage = (file: File): Promise<string> => {
     return new Promise((resolve) => {
       const reader = new FileReader();
@@ -136,7 +127,6 @@ export default function AdminPage() {
 
           let quality = 0.8;
           let dataUrl = canvas.toDataURL("image/jpeg", quality);
-          // 確保 Base64 小於約 150KB
           while (dataUrl.length > 200000 && quality > 0.1) {
             quality -= 0.1;
             dataUrl = canvas.toDataURL("image/jpeg", quality);
@@ -147,7 +137,7 @@ export default function AdminPage() {
     });
   };
 
-  // 🔥 管理員批量上傳
+  // 管理員批量上傳
   const handleAdminBatchUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     if (!e.target.files) return;
     const files = Array.from(e.target.files);
@@ -157,7 +147,7 @@ export default function AdminPage() {
       const compressedData = await compressImage(file);
       await addDoc(collection(db, "max_gallery"), {
         imageUrl: compressedData,
-        status: "approved", // 管理員上傳直接顯示為 approved
+        status: "approved", 
         submittedBy: "👑 Admin Jason",
         likes: 0,
         createdAt: serverTimestamp()
@@ -183,7 +173,7 @@ export default function AdminPage() {
 
         <div className="bg-slate-900 p-8 rounded-2xl border border-slate-800 space-y-8">
           
-          {/* 🔥 區塊 1：完全恢復的 News & Tech Broadcast */}
+          {/* 🔥 區塊 1：包含 8 個欄位 (含 Video Prompt) */}
           <div className="border border-slate-800 rounded-xl p-6 bg-slate-950 space-y-6">
             <h2 className="text-xl font-bold flex items-center gap-2 text-blue-400"><Wand2 size={24}/> 1. News & Tech Broadcast</h2>
             <button onClick={generateAIContent} disabled={aiLoading} className="w-full bg-blue-600/20 text-blue-400 border border-blue-600/50 py-3 rounded-lg font-bold flex justify-center items-center gap-2 hover:bg-blue-600/40 transition">
@@ -192,10 +182,21 @@ export default function AdminPage() {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div className="space-y-3"><label className="text-xs text-slate-500 font-bold">News Headline</label><input type="text" className="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-sm" value={formData.newsHeadline} onChange={e => setFormData({...formData, newsHeadline: e.target.value})} /></div>
               <div className="space-y-3"><label className="text-xs text-slate-500 font-bold">Tech Headline</label><input type="text" className="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-sm" value={formData.techHeadline} onChange={e => setFormData({...formData, techHeadline: e.target.value})} /></div>
-              <div className="space-y-3"><label className="text-xs text-slate-500 font-bold">News Content</label><textarea className="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-sm h-20" value={formData.newsContent} onChange={e => setFormData({...formData, newsContent: e.target.value})} /></div>
-              <div className="space-y-3"><label className="text-xs text-slate-500 font-bold">Tech Content</label><textarea className="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-sm h-20" value={formData.techContent} onChange={e => setFormData({...formData, techContent: e.target.value})} /></div>
-              <div className="space-y-3"><label className="text-xs text-slate-500 font-bold">News Video URL</label><input type="text" className="w-full bg-slate-900 border border-blue-500 rounded-lg px-3 py-2 text-sm" value={formData.newsVideoUrl} onChange={e => setFormData({...formData, newsVideoUrl: e.target.value})} /></div>
-              <div className="space-y-3"><label className="text-xs text-slate-500 font-bold">Tech Video URL</label><input type="text" className="w-full bg-slate-900 border border-blue-500 rounded-lg px-3 py-2 text-sm" value={formData.techVideoUrl} onChange={e => setFormData({...formData, techVideoUrl: e.target.value})} /></div>
+              
+              <div className="space-y-3"><label className="text-xs text-slate-500 font-bold">News Content (播報稿)</label><textarea className="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-sm h-24 custom-scrollbar" value={formData.newsContent} onChange={e => setFormData({...formData, newsContent: e.target.value})} /></div>
+              <div className="space-y-3"><label className="text-xs text-slate-500 font-bold">Tech Content (科技分析)</label><textarea className="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-sm h-24 custom-scrollbar" value={formData.techContent} onChange={e => setFormData({...formData, techContent: e.target.value})} /></div>
+              
+              <div className="space-y-3">
+                <label className="text-xs text-yellow-500 font-bold flex items-center gap-1">✨ News Video Prompt (複製去生成影片)</label>
+                <textarea className="w-full bg-slate-900 border border-yellow-700/50 rounded-lg px-3 py-2 text-xs h-20 text-yellow-400 font-mono custom-scrollbar" value={formData.newsVideoPrompt} onChange={e => setFormData({...formData, newsVideoPrompt: e.target.value})} />
+              </div>
+              <div className="space-y-3">
+                <label className="text-xs text-yellow-500 font-bold flex items-center gap-1">✨ Tech Video Prompt (複製去生成影片)</label>
+                <textarea className="w-full bg-slate-900 border border-yellow-700/50 rounded-lg px-3 py-2 text-xs h-20 text-yellow-400 font-mono custom-scrollbar" value={formData.techVideoPrompt} onChange={e => setFormData({...formData, techVideoPrompt: e.target.value})} />
+              </div>
+
+              <div className="space-y-3"><label className="text-xs text-slate-500 font-bold">News Video URL (貼上你做好的影片網址)</label><input type="text" className="w-full bg-slate-900 border border-blue-500 rounded-lg px-3 py-2 text-sm" value={formData.newsVideoUrl} onChange={e => setFormData({...formData, newsVideoUrl: e.target.value})} /></div>
+              <div className="space-y-3"><label className="text-xs text-slate-500 font-bold">Tech Video URL (貼上你做好的影片網址)</label><input type="text" className="w-full bg-slate-900 border border-blue-500 rounded-lg px-3 py-2 text-sm" value={formData.techVideoUrl} onChange={e => setFormData({...formData, techVideoUrl: e.target.value})} /></div>
             </div>
           </div>
 
@@ -221,8 +222,6 @@ export default function AdminPage() {
           <div className="border border-slate-800 rounded-xl p-6 bg-slate-950 space-y-6 relative">
             <div className="flex justify-between items-center">
               <h2 className="text-xl font-bold flex items-center gap-2 text-orange-500"><Camera size={24}/> 3. The Vault Curation (粉絲相片審查)</h2>
-              
-              {/* 🔥 管理員專屬：批量上傳按鈕 */}
               <div>
                 <input type="file" accept="image/*" multiple ref={fileInputRef} className="hidden" onChange={handleAdminBatchUpload} />
                 <button onClick={() => fileInputRef.current?.click()} disabled={uploadingVault} className="bg-orange-600 hover:bg-orange-500 text-white px-4 py-2 rounded-lg font-bold flex items-center gap-2 transition text-sm">
@@ -240,7 +239,6 @@ export default function AdminPage() {
                   <img src={photo.imageUrl} alt="vault" className="w-full h-32 object-cover bg-black" />
                   <div className="absolute top-0 left-0 bg-black/70 text-[10px] px-2 py-1 text-white truncate max-w-[80%]">{photo.submittedBy}</div>
                   
-                  {/* 狀態標籤與按讚數 */}
                   <div className="absolute top-0 right-0 bg-black/70 text-[10px] px-2 py-1 font-bold flex flex-col items-end">
                     {photo.status === 'approved' ? <span className="text-green-400">Approved</span> : <span className="text-yellow-400">Pending</span>}
                     <span className="text-orange-400">★ {photo.likes || 0}</span>
