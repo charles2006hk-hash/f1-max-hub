@@ -4,6 +4,7 @@ import VoiceOfDay from '@/components/VoiceOfDay';
 import HeroBanner from '@/components/HeroBanner';
 import { db } from "@/lib/firebase";
 import { doc, getDoc, getDocs, collection, query, where, limit } from "firebase/firestore";
+import VideoPlayer from '@/components/VideoPlayer'; // 🔥 加入這一行
 
 // 🔥 確保後台發佈後秒更新
 export const revalidate = 0;
@@ -114,9 +115,7 @@ export default async function Home() {
               <div className="flex items-center gap-2 md:gap-3 border-l-4 border-red-600 pl-3 md:pl-4 mb-4 md:mb-6"><Radio className="text-red-600" size={24} /> <h2 className="text-2xl md:text-3xl font-bold text-white">Daily Broadcast</h2></div>
               <div className="bg-gradient-to-br from-slate-900 to-slate-950 rounded-2xl border border-slate-800 p-1 shadow-xl overflow-hidden group hover:border-red-900/50 transition duration-500">
                 <div className="relative aspect-video bg-black rounded-t-xl overflow-hidden border-b border-slate-800 flex items-center justify-center">
-                  {cmsData.newsVideoUrl ? (
-                    <video src={cmsData.newsVideoUrl} autoPlay loop muted playsInline className="w-full h-full object-cover"></video>
-                  ) : (<span className="text-slate-600 text-sm">Signal Lost</span>)}
+                  <VideoPlayer urls={cmsData.newsVideoUrl} />
                   <div className="absolute bottom-3 left-3 z-20 bg-black/60 backdrop-blur-md px-2 py-1.5 rounded-lg border border-slate-700/50 max-w-[85%]">
                     <p className="text-[9px] text-red-500 font-bold uppercase mb-0.5">AI Video Synth</p>
                     <p className="text-[10px] text-gray-300 font-mono truncate">Prompt: {cmsData.newsVideoPrompt}</p>
@@ -133,9 +132,7 @@ export default async function Home() {
               <div className="flex items-center gap-2 md:gap-3 border-l-4 border-yellow-400 pl-3 md:pl-4 mb-4 md:mb-6"><Trophy className="text-yellow-400" size={24} /> <h2 className="text-2xl md:text-3xl font-bold text-white">Tech Intel</h2></div>
               <div className="bg-slate-900 p-1 rounded-2xl border border-slate-800 shadow-lg relative overflow-hidden">
                 <div className="relative aspect-video bg-black rounded-t-xl overflow-hidden border-b border-slate-800 flex items-center justify-center">
-                  {cmsData.techVideoUrl ? (
-                    <video src={cmsData.techVideoUrl} autoPlay loop muted playsInline className="w-full h-full object-cover"></video>
-                  ) : (<span className="text-slate-600 text-sm">No Video Provided</span>)}
+                  <VideoPlayer urls={cmsData.techVideoUrl} />
                   <div className="absolute bottom-3 left-3 z-20 bg-black/60 backdrop-blur-md px-2 py-1.5 rounded-lg border border-slate-700/50 max-w-[85%]">
                     <p className="text-[9px] text-yellow-400 font-bold uppercase mb-0.5">Tech Render Engine</p>
                     <p className="text-[10px] text-gray-300 font-mono truncate">Prompt: {cmsData.techVideoPrompt}</p>
