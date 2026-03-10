@@ -5,27 +5,38 @@ export async function POST() {
   try {
     const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
     
-    // 🔥 最新的動態抓取邏輯：不再寫死澳洲站，而是讓 AI 自己去總表找最新賽事！
+    // 🔥 終極防幻覺 Prompt：強制導航與搜尋真實數據
     const prompt = `
-      Task: Act as an expert F1 Data Scraper. 
-      Step 1: Visit https://www.formula1.com/en/results/2026/races to identify the LATEST COMPLETED Grand Prix in the 2026 season.
-      Step 2: Navigate to that specific completed race's "Race Result" page.
-      Step 3: Extract the Top 8 Driver Standings based on those results, and list the next 5 upcoming races from the calendar.
+      CRITICAL INSTRUCTION: You are an F1 Live Data Extraction Tool. DO NOT invent or hallucinate data. 
+      You MUST fetch the REAL, CURRENT 2026 data.
 
-      Current Context: It is the 2026 F1 season. Do NOT hardcode Australia. Always look for the most recently completed race on the official site.
-      
-      OUTPUT STRICTLY IN JSON FORMAT ONLY (No markdown, no text):
+      STEP 1: Access https://www.formula1.com/en/results/2026/races
+      STEP 2: Identify the MOST RECENTLY COMPLETED Grand Prix in the 2026 season from that list.
+      STEP 3: Read the official Top 8 driver standings/results strictly from that specific completed race.
+      STEP 4: Identify the next 5 UPCOMING races in the 2026 calendar.
+
+      Example formatting rules:
+      - Driver codes must be 3 letters (e.g., VER, LEC, RUS, NOR).
+      - Team names should be short (e.g., Red Bull, Ferrari, Mercedes, McLaren).
+      - Points (pts) must be accurate to the real-world official results.
+
+      OUTPUT STRICTLY IN VALID JSON FORMAT ONLY (No markdown blocks, no intro text):
       {
         "standings": [
-          { "pos": 1, "driver": "DRIVER_CODE", "team": "TEAM_NAME", "pts": 25, "trend": "up" }
+          { "pos": 1, "driver": "DRIVER_CODE", "team": "Team Name", "pts": 25, "trend": "up" }
         ],
         "races": [
-          { "date": "MMM DD", "name": "Race Name", "status": "WINNER_NAME WON or UPCOMING" }
+          { "date": "MAR 08", "name": "Australian Grand Prix", "status": "COMPLETED" },
+          { "date": "MAR 22", "name": "Saudi Arabian Grand Prix", "status": "UPCOMING" }
         ]
       }
     `;
 
-    const response = await ai.models.generateContent({ model: 'gemini-2.5-flash', contents: prompt });
+    const response = await ai.models.generateContent({ 
+      model: 'gemini-2.5-flash', 
+      contents: prompt 
+    });
+    
     let text = (response.text || '').replace(/```json/g, '').replace(/```/g, '').trim();
     return NextResponse.json(JSON.parse(text));
   } catch (error: any) {
