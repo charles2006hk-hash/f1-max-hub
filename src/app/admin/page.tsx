@@ -63,20 +63,33 @@ export default function AdminPage() {
     setLoading(false);
   };
 
-  // 區塊1：呼叫 AI 產生新聞腳本
-  const generateAIContent = async () => {
-    setAiLoading(true);
-    try {
-      const res = await fetch('/api/ai', { method: 'POST' });
-      const data = await res.json();
-      setFormData(prev => ({
-        ...prev,
-        newsHeadline: data.news.headline, newsContent: data.news.content, newsVideoPrompt: data.news.videoPrompt,
-        techHeadline: data.tech.headline, techContent: data.tech.content, techVideoPrompt: data.tech.videoPrompt
-      }));
-    } catch (error) { alert("AI 新聞生成失敗"); }
-    setAiLoading(false);
-  };
+  {/* 🔥 區塊 1：完全恢復的 News & Tech Broadcast */}
+          <div className="border border-slate-800 rounded-xl p-6 bg-slate-950 space-y-6">
+            <h2 className="text-xl font-bold flex items-center gap-2 text-blue-400"><Wand2 size={24}/> 1. News & Tech Broadcast</h2>
+            <button onClick={generateAIContent} disabled={aiLoading} className="w-full bg-blue-600/20 text-blue-400 border border-blue-600/50 py-3 rounded-lg font-bold flex justify-center items-center gap-2 hover:bg-blue-600/40 transition">
+              {aiLoading ? <Loader2 className="animate-spin" size={20} /> : "🤖 請 AI 寫今日新聞與腳本"}
+            </button>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div className="space-y-3"><label className="text-xs text-slate-500 font-bold">News Headline</label><input type="text" className="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-sm" value={formData.newsHeadline} onChange={e => setFormData({...formData, newsHeadline: e.target.value})} /></div>
+              <div className="space-y-3"><label className="text-xs text-slate-500 font-bold">Tech Headline</label><input type="text" className="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-sm" value={formData.techHeadline} onChange={e => setFormData({...formData, techHeadline: e.target.value})} /></div>
+              
+              <div className="space-y-3"><label className="text-xs text-slate-500 font-bold">News Content (播報稿)</label><textarea className="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-sm h-24 custom-scrollbar" value={formData.newsContent} onChange={e => setFormData({...formData, newsContent: e.target.value})} /></div>
+              <div className="space-y-3"><label className="text-xs text-slate-500 font-bold">Tech Content (科技分析)</label><textarea className="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-sm h-24 custom-scrollbar" value={formData.techContent} onChange={e => setFormData({...formData, techContent: e.target.value})} /></div>
+              
+              {/* 🔥 新增：這兩個是讓你複製去生成影片的 Prompt 欄位 */}
+              <div className="space-y-3">
+                <label className="text-xs text-yellow-500 font-bold flex items-center gap-1">✨ News Video Prompt (複製去生成影片)</label>
+                <textarea className="w-full bg-slate-900 border border-yellow-700/50 rounded-lg px-3 py-2 text-xs h-20 text-yellow-400 font-mono custom-scrollbar" value={formData.newsVideoPrompt} onChange={e => setFormData({...formData, newsVideoPrompt: e.target.value})} />
+              </div>
+              <div className="space-y-3">
+                <label className="text-xs text-yellow-500 font-bold flex items-center gap-1">✨ Tech Video Prompt (複製去生成影片)</label>
+                <textarea className="w-full bg-slate-900 border border-yellow-700/50 rounded-lg px-3 py-2 text-xs h-20 text-yellow-400 font-mono custom-scrollbar" value={formData.techVideoPrompt} onChange={e => setFormData({...formData, techVideoPrompt: e.target.value})} />
+              </div>
+
+              <div className="space-y-3"><label className="text-xs text-slate-500 font-bold">News Video URL (貼上你做好的影片網址)</label><input type="text" className="w-full bg-slate-900 border border-blue-500 rounded-lg px-3 py-2 text-sm" value={formData.newsVideoUrl} onChange={e => setFormData({...formData, newsVideoUrl: e.target.value})} /></div>
+              <div className="space-y-3"><label className="text-xs text-slate-500 font-bold">Tech Video URL (貼上你做好的影片網址)</label><input type="text" className="w-full bg-slate-900 border border-blue-500 rounded-lg px-3 py-2 text-sm" value={formData.techVideoUrl} onChange={e => setFormData({...formData, techVideoUrl: e.target.value})} /></div>
+            </div>
+          </div>
 
   // 區塊2：呼叫 AI 抓取 F1 最新賽果
   const generateF1Data = async () => {
